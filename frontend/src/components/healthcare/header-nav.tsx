@@ -1,0 +1,32 @@
+export default function HeaderNav() {
+  return (
+    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
+      <a
+        href="#home"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:bg-primary focus:text-primary-foreground focus:px-3 focus:py-1 focus:rounded-md"
+      >
+        Skip to content
+      </a>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div aria-hidden className="h-6 w-6 rounded-md bg-black" />
+          <span className="font-medium">Healthcare</span>
+        </div>
+        <nav aria-label="Primary" className="flex items-center gap-4 md:gap-6 text-sm">
+          <a href="/" className="hover:text-black transition-colors">
+            Home
+          </a>
+          <a href="/patients" className="hover:text-black transition-colors">
+            Patients
+          </a>
+          <a href="/doctors" className="hover:text-black transition-colors">
+            Doctors
+          </a>
+          <a href="/appointments" className="hover:text-black transition-colors">
+            Appointments
+          </a>
+        </nav>
+      </div>
+    </header>
+  )
+}
