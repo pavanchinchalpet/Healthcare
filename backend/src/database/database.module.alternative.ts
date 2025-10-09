@@ -13,9 +13,14 @@ import { DatabaseService } from './database.service';
       database: 'neondb',
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       synchronize: false,
-      logging: process.env.NODE_ENV === 'development',
+      logging: false,
       ssl: {
         rejectUnauthorized: false,
+      },
+      extra: {
+        connectionLimit: 10,
+        acquireTimeoutMillis: 30000,
+        timeout: 20000,
       },
     }),
   ],

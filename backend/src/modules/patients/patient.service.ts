@@ -12,7 +12,23 @@ export class PatientService {
   ) {}
 
   async findAll(): Promise<Patient[]> {
-    return this.patientRepository.find();
+    console.log('🔍 PatientService.findAll() called');
+    const startTime = Date.now();
+    
+    try {
+      const patients = await this.patientRepository.find({
+        order: { createdAt: 'DESC' }
+      });
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ PatientService.findAll() completed in ${duration}ms, found ${patients.length} patients`);
+      
+      return patients;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ PatientService.findAll() failed after ${duration}ms:`, error);
+      throw error;
+    }
   }
 
   async findOne(id: string): Promise<Patient> {

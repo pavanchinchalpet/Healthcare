@@ -111,7 +111,9 @@ export const apolloClient = new ApolloClient({
     },
   },
   // Enable development tools in development
-  connectToDevTools: process.env.NODE_ENV === 'development',
+  devtools: {
+    enabled: process.env.NODE_ENV === 'development',
+  },
 })
 
 // Query result caching policies

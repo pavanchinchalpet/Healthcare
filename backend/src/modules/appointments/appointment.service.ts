@@ -12,9 +12,24 @@ export class AppointmentService {
   ) {}
 
   async findAll(): Promise<Appointment[]> {
-    return this.appointmentRepository.find({
-      relations: ['patient', 'doctor'],
-    });
+    console.log('🔍 AppointmentService.findAll() called');
+    const startTime = Date.now();
+    
+    try {
+      const appointments = await this.appointmentRepository.find({
+        relations: ['patient', 'doctor'],
+        order: { createdAt: 'DESC' }
+      });
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ AppointmentService.findAll() completed in ${duration}ms, found ${appointments.length} appointments`);
+      
+      return appointments;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ AppointmentService.findAll() failed after ${duration}ms:`, error);
+      throw error;
+    }
   }
 
   async findOne(id: string): Promise<Appointment> {

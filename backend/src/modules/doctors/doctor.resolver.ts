@@ -8,8 +8,20 @@ export class DoctorResolver {
   constructor(private readonly doctorService: DoctorService) {}
 
   @Query(() => [Doctor], { name: 'getDoctors' })
-  findAll() {
-    return this.doctorService.findAll();
+  async findAll() {
+    console.log('🔍 DoctorResolver.findAll() called');
+    const startTime = Date.now();
+    
+    try {
+      const doctors = await this.doctorService.findAll();
+      const duration = Date.now() - startTime;
+      console.log(`✅ DoctorResolver.findAll() completed in ${duration}ms`);
+      return doctors;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ DoctorResolver.findAll() failed after ${duration}ms:`, error);
+      throw error;
+    }
   }
 
   @Query(() => Doctor, { name: 'getDoctorById' })

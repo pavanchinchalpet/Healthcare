@@ -1,11 +1,10 @@
 'use client'
 
 import { useQuery, useMutation } from '@apollo/client'
-import { GET_APPOINTMENTS } from '@/graphql/queries/appointments'
-import { GET_PATIENTS } from '@/graphql/queries/patients'
-import { GET_DOCTORS } from '@/graphql/queries/doctors'
+import { GET_APPOINTMENTS_LIGHT, GET_PATIENTS_LIGHT, GET_DOCTORS_LIGHT } from '@/graphql/queries/appointments-optimized'
 import { CREATE_APPOINTMENT, UPDATE_APPOINTMENT, DELETE_APPOINTMENT } from '@/graphql/mutations/appointments'
-import { useState } from 'react'
+import { queryOptions } from '@/lib/apollo-client'
+import { useState, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import HeaderNav from "@/components/healthcare/header-nav"
+import { AppointmentsSkeleton } from "@/components/appointments/appointments-skeleton"
 
 interface Appointment {
   id: string
@@ -41,9 +41,24 @@ interface Appointment {
 }
 
 export default function AppointmentsPage() {
-  const { loading, error, data } = useQuery(GET_APPOINTMENTS)
-  const { data: patientsData } = useQuery(GET_PATIENTS)
-  const { data: doctorsData } = useQuery(GET_DOCTORS)
+  // Parallel queries with optimized fetch policies
+  const { loading: appointmentsLoading, error: appointmentsError, data: appointmentsData } = useQuery(GET_APPOINTMENTS_LIGHT, {
+    ...queryOptions.appointments,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all'
+  })
+  
+  const { loading: patientsLoading, error: patientsError, data: patientsData } = useQuery(GET_PATIENTS_LIGHT, {
+    ...queryOptions.patients,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all'
+  })
+  
+  const { loading: doctorsLoading, error: doctorsError, data: doctorsData } = useQuery(GET_DOCTORS_LIGHT, {
+    ...queryOptions.doctors,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all'
+  })
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
@@ -54,8 +69,20 @@ export default function AppointmentsPage() {
   const [status, setStatus] = useState('Scheduled')
   const [reason, setReason] = useState('')
 
+  // Memoized loading state
+  const isLoading = useMemo(() => 
+    appointmentsLoading || patientsLoading || doctorsLoading, 
+    [appointmentsLoading, patientsLoading, doctorsLoading]
+  )
+
+  // Memoized error state
+  const hasError = useMemo(() => 
+    appointmentsError || patientsError || doctorsError,
+    [appointmentsError, patientsError, doctorsError]
+  )
+
   const [createAppointment, { loading: creating }] = useMutation(CREATE_APPOINTMENT, {
-    refetchQueries: [{ query: GET_APPOINTMENTS }],
+    refetchQueries: [{ query: GET_APPOINTMENTS_LIGHT }],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('❌ Error creating appointment:', error)
@@ -67,7 +94,7 @@ export default function AppointmentsPage() {
   })
 
   const [updateAppointment, { loading: updating }] = useMutation(UPDATE_APPOINTMENT, {
-    refetchQueries: [{ query: GET_APPOINTMENTS }],
+    refetchQueries: [{ query: GET_APPOINTMENTS_LIGHT }],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('❌ Error updating appointment:', error)
@@ -80,7 +107,7 @@ export default function AppointmentsPage() {
   })
 
   const [deleteAppointment, { loading: deleting }] = useMutation(DELETE_APPOINTMENT, {
-    refetchQueries: [{ query: GET_APPOINTMENTS }],
+    refetchQueries: [{ query: GET_APPOINTMENTS_LIGHT }],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('❌ Error deleting appointment:', error)
@@ -105,7 +132,6 @@ export default function AppointmentsPage() {
 
     try {
       if (editingAppointment) {
-        // Update existing appointment
         const updateAppointmentInput = {
           id: editingAppointment.id,
           ...createAppointmentInput
@@ -114,7 +140,6 @@ export default function AppointmentsPage() {
         await updateAppointment({ variables: { updateAppointmentInput } })
         console.log('✅ Appointment update successful')
       } else {
-        // Create new appointment
         console.log('📝 Creating new appointment with:', JSON.stringify(createAppointmentInput, null, 2))
         await createAppointment({ variables: { createAppointmentInput } })
         console.log('✅ Appointment creation successful')
@@ -169,23 +194,30 @@ export default function AppointmentsPage() {
     setReason('')
   }
 
-  if (loading) return (
-    <>
-      <HeaderNav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <div className="text-center">Loading...</div>
-      </main>
-    </>
-  )
+  // Show skeleton loading state
+  if (isLoading) {
+    return (
+      <>
+        <HeaderNav />
+        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+          <AppointmentsSkeleton />
+        </main>
+      </>
+    )
+  }
   
-  if (error) return (
-    <>
-      <HeaderNav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <div className="text-center text-destructive">Error: {error.message}</div>
-      </main>
-    </>
-  )
+  // Show error state
+  if (hasError) {
+    const errorMessage = appointmentsError?.message || patientsError?.message || doctorsError?.message || 'Unknown error'
+    return (
+      <>
+        <HeaderNav />
+        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+          <div className="text-center text-destructive">Error: {errorMessage}</div>
+        </main>
+      </>
+    )
+  }
 
   return (
     <>
@@ -323,7 +355,7 @@ export default function AppointmentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data?.getAppointments?.map((appointment: Appointment) => (
+                  {appointmentsData?.getAppointments?.map((appointment: Appointment) => (
                     <tr key={appointment.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-medium">{appointment.patient.name}</td>
                       <td className="p-2 text-muted-foreground">Dr. {appointment.doctor.name}</td>
@@ -375,7 +407,7 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
 
-        {data?.getAppointments?.length === 0 && (
+        {appointmentsData?.getAppointments?.length === 0 && (
           <Card>
             <CardContent className="text-center py-12">
               <p className="text-muted-foreground">No appointments found. Schedule your first appointment above.</p>

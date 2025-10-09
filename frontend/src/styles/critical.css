@@ -1,0 +1,65 @@
+/* Critical CSS for appointments page - inline for faster LCP */
+#appointments-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgb(0 0 0);
+}
+
+@media (min-width: 768px) {
+  #appointments-title {
+    font-size: 2.25rem;
+  }
+}
+
+/* Optimize skeleton loading */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Optimize table rendering */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* Reduce layout shift */
+.max-w-6xl {
+  max-width: 72rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.py-10 {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .md\:px-6 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  .md\:py-16 {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+}

@@ -1,9 +1,10 @@
 'use client'
 
 import { useQuery, useMutation } from '@apollo/client'
-import { GET_PATIENTS } from '@/graphql/queries/patients'
+import { GET_PATIENTS_LIGHT_STANDALONE } from '@/graphql/queries/appointments-optimized'
 import { CREATE_PATIENT, UPDATE_PATIENT, DELETE_PATIENT } from '@/graphql/mutations/patients'
-import { useState } from 'react'
+import { queryOptions } from '@/lib/apollo-client'
+import { useState, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import HeaderNav from "@/components/healthcare/header-nav"
+import { PatientsSkeleton } from "@/components/patients/patients-skeleton"
 
 interface Patient {
   id: string
@@ -24,7 +26,12 @@ interface Patient {
 }
 
 export default function PatientsPage() {
-  const { loading, error, data } = useQuery(GET_PATIENTS)
+  // Optimized query with better fetch policy
+  const { loading, error, data } = useQuery(GET_PATIENTS_LIGHT_STANDALONE, {
+    ...queryOptions.patients,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all'
+  })
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
 
@@ -35,8 +42,11 @@ export default function PatientsPage() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
 
+  // Memoized loading state for better performance
+  const isLoading = useMemo(() => loading, [loading])
+
   const [createPatient, { loading: creating }] = useMutation(CREATE_PATIENT, {
-    refetchQueries: [{ query: GET_PATIENTS }],
+    refetchQueries: [{ query: GET_PATIENTS_LIGHT_STANDALONE }],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('❌ Error creating patient:', error)
@@ -49,7 +59,7 @@ export default function PatientsPage() {
   })
 
   const [updatePatient, { loading: updating }] = useMutation(UPDATE_PATIENT, {
-    refetchQueries: [{ query: GET_PATIENTS }],
+    refetchQueries: [{ query: GET_PATIENTS_LIGHT_STANDALONE }],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('❌ Error updating patient:', error)
@@ -62,7 +72,7 @@ export default function PatientsPage() {
   })
 
   const [deletePatient, { loading: deleting }] = useMutation(DELETE_PATIENT, {
-    refetchQueries: [{ query: GET_PATIENTS }],
+    refetchQueries: [{ query: GET_PATIENTS_LIGHT_STANDALONE }],
     awaitRefetchQueries: true,
     onError: (error) => {
       console.error('❌ Error deleting patient:', error)
@@ -161,23 +171,29 @@ export default function PatientsPage() {
     setAddress('')
   }
 
-  if (loading) return (
-    <>
-      <HeaderNav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <div className="text-center">Loading...</div>
-      </main>
-    </>
-  )
+  // Show skeleton loading state
+  if (isLoading) {
+    return (
+      <>
+        <HeaderNav />
+        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+          <PatientsSkeleton />
+        </main>
+      </>
+    )
+  }
   
-  if (error) return (
-    <>
-      <HeaderNav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <div className="text-center text-destructive">Error: {error.message}</div>
-      </main>
-    </>
-  )
+  // Show error state
+  if (error) {
+    return (
+      <>
+        <HeaderNav />
+        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
+          <div className="text-center text-destructive">Error: {error.message}</div>
+        </main>
+      </>
+    )
+  }
 
   return (
     <>
