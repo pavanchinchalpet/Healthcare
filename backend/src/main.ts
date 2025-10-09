@@ -9,10 +9,14 @@ async function bootstrap() {
   // ✅ Enable CORS for local + Vercel frontend
   app.enableCors({
     origin: [
-      'http://localhost:3000',                    // local frontend (dev)
-      'https://healthcare-frontend.vercel.app',   // 👈 Vercel deployed frontend
+      'http://localhost:3000',
+      'https://healthcare-eight-bay.vercel.app',
     ],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // (Optional) Enable validation later if needed
