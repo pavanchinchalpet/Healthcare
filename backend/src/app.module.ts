@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
-import { DatabaseModule } from './database/database.module.alternative';
+import { DatabaseModule } from './database/database.module';
 import { PatientModule } from './modules/patients/patient.module';
 import { DoctorModule } from './modules/doctors/doctor.module';
 import { AppointmentModule } from './modules/appointments/appointment.module';
