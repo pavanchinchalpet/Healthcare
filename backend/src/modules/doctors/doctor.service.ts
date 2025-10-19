@@ -49,4 +49,24 @@ export class DoctorService {
     const result = await this.doctorRepository.delete(id);
     return result.affected > 0;
   }
+
+  async bulkCreate(doctors: CreateDoctorInput[]): Promise<Doctor[]> {
+    console.log('📦 Bulk creating doctors:', doctors.length);
+    const createdDoctors: Doctor[] = [];
+    
+    for (const doctorData of doctors) {
+      try {
+        const doctor = this.doctorRepository.create(doctorData);
+        const savedDoctor = await this.doctorRepository.save(doctor);
+        createdDoctors.push(savedDoctor);
+        console.log('✅ Created doctor:', savedDoctor.name);
+      } catch (error) {
+        console.error('❌ Failed to create doctor:', doctorData.name, error.message);
+        throw new Error(`Failed to create doctor ${doctorData.name}: ${error.message}`);
+      }
+    }
+    
+    console.log('🎉 Bulk upload completed:', createdDoctors.length, 'doctors created');
+    return createdDoctors;
+  }
 }

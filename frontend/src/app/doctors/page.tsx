@@ -24,10 +24,12 @@ interface Doctor {
 
 export default function DoctorsPage() {
   // Optimized query with better fetch policy
+  // Optimized query with better performance
   const { loading, error, data } = useQuery(GET_DOCTORS_LIGHT_STANDALONE, {
     ...queryOptions.doctors,
     fetchPolicy: 'cache-first',
-    errorPolicy: 'all'
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false, // Reduce re-renders
   })
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null)
@@ -172,22 +174,44 @@ export default function DoctorsPage() {
 
         <section aria-label="Doctor management" className="space-y-6">
           <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-1 bg-green-600 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-gray-800">Medical Staff</h2>
+            </div>
             <Button
               onClick={() => setShowAddForm(!showAddForm)}
               variant={showAddForm ? "outline" : "default"}
+              className={showAddForm ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-green-600 hover:bg-green-700 text-white"}
             >
-              {showAddForm ? 'Cancel' : 'Add Doctor'}
+              {showAddForm ? (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add New Doctor
+                </>
+              )}
             </Button>
           </div>
 
           {showAddForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}
+            <Card className="border-l-4 border-l-green-500 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+                <CardTitle className="flex items-center gap-2 text-green-900">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {editingDoctor ? 'Edit Doctor Profile' : 'Add New Doctor'}
                 </CardTitle>
-                <CardDescription>
-                  {editingDoctor ? 'Update doctor information' : 'Enter new doctor details'}
+                <CardDescription className="text-green-700">
+                  {editingDoctor ? 'Update doctor credentials and specialization details' : 'Enter comprehensive doctor information and medical expertise'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -242,18 +266,44 @@ export default function DoctorsPage() {
                       placeholder="Enter years of experience"
                     />
                   </div>
-                  <div className="md:col-span-2 flex gap-2">
+                  <div className="md:col-span-2 flex gap-3 pt-4">
                     <Button
                       type="submit"
                       disabled={creating || updating || !name.trim()}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6"
                     >
-                      {creating || updating ? 'Saving...' : editingDoctor ? 'Update Doctor' : 'Add Doctor'}
+                      {creating || updating ? (
+                        <>
+                          <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Saving...
+                        </>
+                      ) : editingDoctor ? (
+                        <>
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Update Doctor
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Add Doctor
+                        </>
+                      )}
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleCancel}
+                      className="border-gray-300 hover:bg-gray-50"
                     >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                       Cancel
                     </Button>
                   </div>
@@ -262,51 +312,107 @@ export default function DoctorsPage() {
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>All Doctors</CardTitle>
-              <CardDescription>Manage doctor profiles and information</CardDescription>
+          <Card className="shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50">
+              <CardTitle className="flex items-center gap-3 text-gray-800">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                Doctor Profiles
+                <span className="ml-auto text-sm font-normal text-gray-500">
+                  {data?.getDoctors?.length || 0} doctors
+                </span>
+              </CardTitle>
+              <CardDescription className="text-gray-600">Complete medical staff database with specializations and credentials</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead>
+                  <thead className="bg-gray-50">
                     <tr className="border-b">
-                      <th className="text-left p-2 font-medium">Name</th>
-                      <th className="text-left p-2 font-medium">Specialization</th>
-                      <th className="text-left p-2 font-medium">Email</th>
-                      <th className="text-left p-2 font-medium">Phone</th>
-                      <th className="text-left p-2 font-medium">Experience</th>
-                      <th className="text-left p-2 font-medium">Created</th>
-                      <th className="text-left p-2 font-medium">Actions</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">Doctor Name</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">Specialization</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">Experience</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">Contact</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">Registered</th>
+                      <th className="text-left p-4 font-semibold text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data?.getDoctors?.map((doctor: Doctor) => (
-                      <tr key={doctor.id} className="border-b hover:bg-muted/50">
-                        <td className="p-2 font-medium">{doctor.name || '-'}</td>
-                        <td className="p-2 text-muted-foreground">{doctor.specialization || '-'}</td>
-                        <td className="p-2 text-muted-foreground">{doctor.email || '-'}</td>
-                        <td className="p-2 text-muted-foreground">{doctor.phone || '-'}</td>
-                        <td className="p-2 text-muted-foreground">{doctor.experience ? `${doctor.experience} years` : '-'}</td>
-                        <td className="p-2 text-muted-foreground">{new Date(doctor.createdAt).toLocaleDateString()}</td>
-                        <td className="p-2">
+                      <tr key={doctor.id} className="border-b hover:bg-green-50/50 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                              <span className="text-green-600 font-semibold text-sm">
+                                {doctor.name?.charAt(0)?.toUpperCase() || '?'}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{doctor.name || '-'}</div>
+                              <div className="text-sm text-gray-500">Doctor ID: {doctor.id.slice(0, 8)}...</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {doctor.specialization || 'Not specified'}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            {doctor.experience ? `${doctor.experience} years` : 'Not specified'}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm">
+                            <div className="text-gray-900">{doctor.email || 'No email'}</div>
+                            <div className="text-gray-500">{doctor.phone || 'No phone'}</div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm text-gray-600">
+                            {new Date(doctor.createdAt).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="p-4">
                           <div className="flex gap-2">
                             <Button
-                              variant="outline"
                               size="sm"
+                              variant="outline"
                               onClick={() => handleEdit(doctor)}
                               disabled={deleting}
+                              className="border-blue-200 text-blue-600 hover:bg-blue-50"
                             >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
                               Edit
                             </Button>
                             <Button
-                              variant="destructive"
                               size="sm"
+                              variant="outline"
                               onClick={() => handleDelete(doctor.id)}
                               disabled={deleting}
+                              className="bg-red-100 text-red-600 hover:bg-red-200 border-red-200"
                             >
-                              {deleting ? 'Deleting...' : 'Delete'}
+                              {deleting ? (
+                                <>
+                                  <svg className="w-4 h-4 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete
+                                </>
+                              )}
                             </Button>
                           </div>
                         </td>
@@ -319,9 +425,24 @@ export default function DoctorsPage() {
           </Card>
 
           {data?.getDoctors?.length === 0 && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-muted-foreground">No doctors found. Add your first doctor above.</p>
+            <Card className="border-dashed border-2 border-gray-200">
+              <CardContent className="text-center py-16">
+                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Doctors Found</h3>
+                <p className="text-gray-500 mb-6">Start building your medical staff database by adding your first doctor.</p>
+                <Button 
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add First Doctor
+                </Button>
               </CardContent>
             </Card>
           )}

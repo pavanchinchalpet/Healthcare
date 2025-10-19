@@ -53,4 +53,10 @@ export class PatientResolver {
   async remove(@Args('id', { type: () => ID }) id: string) {
     return this.patientService.remove(id);
   }
+
+  @Mutation(() => [Patient], { name: 'bulkCreatePatients' })
+  async bulkCreate(@Args('patients', { type: () => [CreatePatientInput] }) patients: CreatePatientInput[]) {
+    console.log('🔥 Bulk upload started for patients:', patients.length);
+    return this.patientService.bulkCreate(patients);
+  }
 }

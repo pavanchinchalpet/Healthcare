@@ -35,3 +35,18 @@ export const DELETE_PATIENT = gql`
     deletePatient(id: $id)
   }
 `
+
+export const BULK_CREATE_PATIENTS = gql`
+  mutation BulkCreatePatients($patients: [CreatePatientInput!]!) {
+    bulkCreatePatients(patients: $patients) {
+      id
+      name
+      age
+      gender
+      email
+      phone
+      address
+      createdAt
+    }
+  }
+`

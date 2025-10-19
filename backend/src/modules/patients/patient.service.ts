@@ -67,4 +67,24 @@ export class PatientService {
     const result = await this.patientRepository.delete(id);
     return result.affected > 0;
   }
+
+  async bulkCreate(patients: CreatePatientInput[]): Promise<Patient[]> {
+    console.log('📦 Bulk creating patients:', patients.length);
+    const createdPatients: Patient[] = [];
+    
+    for (const patientData of patients) {
+      try {
+        const patient = this.patientRepository.create(patientData);
+        const savedPatient = await this.patientRepository.save(patient);
+        createdPatients.push(savedPatient);
+        console.log('✅ Created patient:', savedPatient.name);
+      } catch (error) {
+        console.error('❌ Failed to create patient:', patientData.name, error.message);
+        throw new Error(`Failed to create patient ${patientData.name}: ${error.message}`);
+      }
+    }
+    
+    console.log('🎉 Bulk upload completed:', createdPatients.length, 'patients created');
+    return createdPatients;
+  }
 }

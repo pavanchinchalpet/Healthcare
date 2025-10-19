@@ -130,21 +130,24 @@ export const cachePolicies = {
   cacheOnly: 'cache-only' as const,
 } as const
 
-// Optimized query options
+// Optimized query options for better performance
 export const queryOptions = {
   patients: {
-    fetchPolicy: cachePolicies.short,
+    fetchPolicy: 'cache-first' as const,
     errorPolicy: 'all' as const,
-    notifyOnNetworkStatusChange: true,
+    notifyOnNetworkStatusChange: false, // Reduce unnecessary re-renders
+    returnPartialData: true, // Show partial data while loading
   },
   doctors: {
-    fetchPolicy: cachePolicies.short,
+    fetchPolicy: 'cache-first' as const,
     errorPolicy: 'all' as const,
-    notifyOnNetworkStatusChange: true,
+    notifyOnNetworkStatusChange: false,
+    returnPartialData: true,
   },
   appointments: {
-    fetchPolicy: cachePolicies.short,
+    fetchPolicy: 'cache-first' as const,
     errorPolicy: 'all' as const,
-    notifyOnNetworkStatusChange: true,
+    notifyOnNetworkStatusChange: false,
+    returnPartialData: true,
   }
 } as const

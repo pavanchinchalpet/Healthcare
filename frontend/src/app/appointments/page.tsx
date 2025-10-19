@@ -41,23 +41,26 @@ interface Appointment {
 }
 
 export default function AppointmentsPage() {
-  // Parallel queries with optimized fetch policies
+  // Optimized query with better performance
   const { loading: appointmentsLoading, error: appointmentsError, data: appointmentsData } = useQuery(GET_APPOINTMENTS_LIGHT, {
     ...queryOptions.appointments,
     fetchPolicy: 'cache-first',
-    errorPolicy: 'all'
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false, // Reduce re-renders
   })
   
   const { loading: patientsLoading, error: patientsError, data: patientsData } = useQuery(GET_PATIENTS_LIGHT, {
     ...queryOptions.patients,
     fetchPolicy: 'cache-first',
-    errorPolicy: 'all'
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false,
   })
   
   const { loading: doctorsLoading, error: doctorsError, data: doctorsData } = useQuery(GET_DOCTORS_LIGHT, {
     ...queryOptions.doctors,
     fetchPolicy: 'cache-first',
-    errorPolicy: 'all'
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false,
   })
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
@@ -232,22 +235,44 @@ export default function AppointmentsPage() {
 
         <section aria-label="Appointment management" className="space-y-6">
           <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-1 bg-purple-600 rounded-full"></div>
+              <h2 className="text-xl font-semibold text-gray-800">Appointment Scheduling</h2>
+            </div>
             <Button
               onClick={() => setShowAddForm(!showAddForm)}
               variant={showAddForm ? "outline" : "default"}
+              className={showAddForm ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-purple-600 hover:bg-purple-700 text-white"}
             >
-              {showAddForm ? 'Cancel' : 'Schedule Appointment'}
+              {showAddForm ? (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Schedule New Appointment
+                </>
+              )}
             </Button>
           </div>
 
         {showAddForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {editingAppointment ? 'Edit Appointment' : 'Schedule New Appointment'}
+          <Card className="border-l-4 border-l-purple-500 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
+              <CardTitle className="flex items-center gap-2 text-purple-900">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {editingAppointment ? 'Edit Appointment Details' : 'Schedule New Appointment'}
               </CardTitle>
-              <CardDescription>
-                {editingAppointment ? 'Update appointment details' : 'Enter appointment information'}
+              <CardDescription className="text-purple-700">
+                {editingAppointment ? 'Update appointment scheduling and medical consultation details' : 'Enter comprehensive appointment information for medical consultation'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -315,18 +340,44 @@ export default function AppointmentsPage() {
                     placeholder="Enter appointment reason"
                   />
                 </div>
-                <div className="md:col-span-2 flex gap-2">
+                <div className="md:col-span-2 flex gap-3 pt-4">
                   <Button
                     type="submit"
                     disabled={creating || updating || !patientId.trim() || !doctorId.trim() || !date}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6"
                   >
-                    {creating || updating ? 'Saving...' : editingAppointment ? 'Update Appointment' : 'Schedule Appointment'}
+                    {creating || updating ? (
+                      <>
+                        <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : editingAppointment ? (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Update Appointment
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Schedule Appointment
+                      </>
+                    )}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
+                    className="border-gray-300 hover:bg-gray-50"
                   >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     Cancel
                   </Button>
                 </div>
@@ -335,67 +386,131 @@ export default function AppointmentsPage() {
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>All Appointments</CardTitle>
-            <CardDescription>Manage scheduled appointments and bookings</CardDescription>
+        <Card className="shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50">
+            <CardTitle className="flex items-center gap-3 text-gray-800">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              Appointment Schedule
+              <span className="ml-auto text-sm font-normal text-gray-500">
+                {appointmentsData?.getAppointments?.length || 0} appointments
+              </span>
+            </CardTitle>
+            <CardDescription className="text-gray-600">Complete appointment calendar with patient and doctor information</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead>
+                <thead className="bg-gray-50">
                   <tr className="border-b">
-                    <th className="text-left p-2 font-medium">Patient</th>
-                    <th className="text-left p-2 font-medium">Doctor</th>
-                    <th className="text-left p-2 font-medium">Date & Time</th>
-                    <th className="text-left p-2 font-medium">Status</th>
-                    <th className="text-left p-2 font-medium">Reason</th>
-                    <th className="text-left p-2 font-medium">Created</th>
-                    <th className="text-left p-2 font-medium">Actions</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Patient</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Doctor</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Date & Time</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Status</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Reason</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Scheduled</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {appointmentsData?.getAppointments?.map((appointment: Appointment) => (
-                    <tr key={appointment.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-medium">{appointment.patient.name}</td>
-                      <td className="p-2 text-muted-foreground">Dr. {appointment.doctor.name}</td>
-                      <td className="p-2 text-muted-foreground">
-                        <div>
-                          <div>{appointment.date ? new Date(appointment.date).toLocaleDateString() : '-'}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {appointment.time || '-'}
+                    <tr key={appointment.id} className="border-b hover:bg-purple-50/50 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-semibold text-sm">
+                              {appointment.patient.name?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">{appointment.patient.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {appointment.patient.age ? `${appointment.patient.age} years` : 'Age not specified'}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="p-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          appointment.status === 'Scheduled' ? 'bg-gray-100 text-gray-800' :
-                          appointment.status === 'Completed' ? 'bg-black text-white' :
-                          appointment.status === 'Cancelled' ? 'bg-gray-200 text-gray-800' :
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <span className="text-green-600 font-semibold text-sm">
+                              {appointment.doctor.name?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Dr. {appointment.doctor.name}</div>
+                            <div className="text-sm text-gray-500">{appointment.doctor.specialization || 'General'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="text-sm">
+                          <div className="font-semibold text-gray-900">
+                            {appointment.date ? new Date(appointment.date).toLocaleDateString() : 'Not scheduled'}
+                          </div>
+                          <div className="text-gray-500">
+                            {appointment.time || 'Time not specified'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          appointment.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' :
+                          appointment.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          appointment.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                          appointment.status === 'Rescheduled' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {appointment.status || 'Scheduled'}
                         </span>
                       </td>
-                      <td className="p-2 text-muted-foreground max-w-xs truncate">{appointment.reason || '-'}</td>
-                      <td className="p-2 text-muted-foreground">{new Date(appointment.createdAt).toLocaleDateString()}</td>
-                      <td className="p-2">
+                      <td className="p-4 text-sm text-gray-600 max-w-xs truncate">
+                        {appointment.reason || 'No reason provided'}
+                      </td>
+                      <td className="p-4">
+                        <div className="text-sm text-gray-600">
+                          {new Date(appointment.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="p-4">
                         <div className="flex gap-2">
                           <Button
-                            variant="outline"
                             size="sm"
+                            variant="outline"
                             onClick={() => handleEdit(appointment)}
                             disabled={deleting}
+                            className="border-purple-200 text-purple-600 hover:bg-purple-50"
                           >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
                             Edit
                           </Button>
                           <Button
-                            variant="destructive"
                             size="sm"
+                            variant="outline"
                             onClick={() => handleDelete(appointment.id)}
                             disabled={deleting}
+                            className="bg-red-100 text-red-600 hover:bg-red-200 border-red-200"
                           >
-                            {deleting ? 'Deleting...' : 'Delete'}
+                            {deleting ? (
+                              <>
+                                <svg className="w-4 h-4 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete
+                              </>
+                            )}
                           </Button>
                         </div>
                       </td>
@@ -408,9 +523,24 @@ export default function AppointmentsPage() {
         </Card>
 
         {appointmentsData?.getAppointments?.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">No appointments found. Schedule your first appointment above.</p>
+          <Card className="border-dashed border-2 border-gray-200">
+            <CardContent className="text-center py-16">
+              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Appointments Found</h3>
+              <p className="text-gray-500 mb-6">Start scheduling appointments by creating your first appointment.</p>
+              <Button 
+                onClick={() => setShowAddForm(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Schedule First Appointment
+              </Button>
             </CardContent>
           </Card>
         )}
