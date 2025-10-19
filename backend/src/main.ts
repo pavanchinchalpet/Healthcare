@@ -7,11 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // ✅ Enable CORS for local + Vercel frontend
+  const allowedOrigins = [
+    'http://localhost:3000',
+    process.env.FRONTEND_URL || 'https://healthcare-eight-bay.vercel.app',
+  ].filter(Boolean); // Remove any undefined values
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'https://healthcare-eight-bay.vercel.app',
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
