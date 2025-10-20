@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Patient } from './patient.entity';
 import { CreatePatientInput, UpdatePatientInput } from './dto/patient.input';
+import { PatientLoginInput } from './dto/patient-login.input';
 
 @Injectable()
 export class PatientService {
@@ -35,6 +37,44 @@ export class PatientService {
     return this.patientRepository.findOne({ where: { id } });
   }
 
+  async findByEmail(email: string): Promise<Patient> {
+    return this.patientRepository.findOne({ where: { email } });
+  }
+
+  async login(loginInput: PatientLoginInput): Promise<Patient> {
+    console.log('🔐 PatientService.login() called');
+    console.log('📧 Login email:', loginInput.email);
+    
+    try {
+      // Find patient by email
+      const patient = await this.findByEmail(loginInput.email);
+      if (!patient) {
+        throw new Error('Patient not found with this email');
+      }
+      
+      // Check if patient has a password set
+      if (!patient.password) {
+        throw new Error('No password set for this patient. Please contact support.');
+      }
+      
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(loginInput.password, patient.password);
+      if (!isPasswordValid) {
+        throw new Error('Invalid password');
+      }
+      
+      console.log('✅ Patient login successful:', patient.name);
+      
+      // Remove password from response
+      delete patient.password;
+      
+      return patient;
+    } catch (error) {
+      console.error('❌ PatientService.login() error:', error.message);
+      throw error;
+    }
+  }
+
   async create(createPatientInput: CreatePatientInput): Promise<Patient> {
     console.log('🔥🔥🔥 SERVICE CALLED - PatientService.create() started 🔥🔥🔥');
     console.log('💾 PatientService.create() called');
@@ -42,12 +82,23 @@ export class PatientService {
     
     try {
       console.log('🔨 Creating patient entity...');
+      
+      // Hash password if provided
+      if (createPatientInput.password) {
+        const saltRounds = 10;
+        createPatientInput.password = await bcrypt.hash(createPatientInput.password, saltRounds);
+        console.log('🔐 Password hashed successfully');
+      }
+      
       const patient = this.patientRepository.create(createPatientInput);
       console.log('📋 Created entity:', JSON.stringify(patient, null, 2));
       
       console.log('💾 Saving to database...');
       const savedPatient = await this.patientRepository.save(patient);
       console.log('✅ Saved patient:', JSON.stringify(savedPatient, null, 2));
+      
+      // Remove password from response
+      delete savedPatient.password;
       
       return savedPatient;
     } catch (error) {
@@ -59,8 +110,31 @@ export class PatientService {
   }
 
   async update(id: string, updatePatientInput: UpdatePatientInput): Promise<Patient> {
-    await this.patientRepository.update(id, updatePatientInput);
-    return this.findOne(id);
+    console.log('🔄 PatientService.update() called');
+    console.log('📝 Update data:', JSON.stringify(updatePatientInput, null, 2));
+    
+    try {
+      // Hash password if provided
+      if (updatePatientInput.password) {
+        const saltRounds = 10;
+        updatePatientInput.password = await bcrypt.hash(updatePatientInput.password, saltRounds);
+        console.log('🔐 Password hashed successfully for update');
+      }
+      
+      await this.patientRepository.update(id, updatePatientInput);
+      const updatedPatient = await this.findOne(id);
+      
+      // Remove password from response
+      if (updatedPatient) {
+        delete updatedPatient.password;
+      }
+      
+      console.log('✅ Patient updated successfully');
+      return updatedPatient;
+    } catch (error) {
+      console.error('❌ PatientService.update() error:', error);
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<boolean> {

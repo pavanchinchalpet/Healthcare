@@ -21,12 +21,16 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
 
-  // (Optional) Enable validation later if needed
-  // app.useGlobalPipes(new ValidationPipe({
-  //   transform: true,
-  //   whitelist: true,
-  //   forbidNonWhitelisted: true,
-  // }));
+  // ✅ Enable validation with proper error handling
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    validationError: {
+      target: false,
+      value: false,
+    },
+  }));
 
   // ✅ Test database connection
   const databaseService = app.get(DatabaseService);

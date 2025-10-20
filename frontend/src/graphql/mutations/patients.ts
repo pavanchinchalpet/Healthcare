@@ -15,6 +15,21 @@ export const CREATE_PATIENT = gql`
   }
 `
 
+export const PATIENT_LOGIN = gql`
+  mutation PatientLogin($loginInput: PatientLoginInput!) {
+    patientLogin(loginInput: $loginInput) {
+      id
+      name
+      age
+      gender
+      email
+      phone
+      address
+      createdAt
+    }
+  }
+`
+
 export const UPDATE_PATIENT = gql`
   mutation UpdatePatient($updatePatientInput: UpdatePatientInput!) {
     updatePatient(updatePatientInput: $updatePatientInput) {

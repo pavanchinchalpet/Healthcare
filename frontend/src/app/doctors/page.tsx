@@ -81,10 +81,23 @@ export default function DoctorsPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const createDoctorInput: any = { name }
-    if (specialization) createDoctorInput.specialization = specialization
+    
+    // Validate required fields
+    if (!name.trim()) {
+      alert('Name is required!')
+      return
+    }
+    
+    // Validate experience range
+    if (experience && (isNaN(parseInt(experience, 10)) || parseInt(experience, 10) < 0 || parseInt(experience, 10) > 50)) {
+      alert('Experience must be between 0 and 50 years!')
+      return
+    }
+    
+    const createDoctorInput: any = { name: name.trim() }
+    if (specialization) createDoctorInput.specialization = specialization.trim()
     if (email && email.trim()) createDoctorInput.email = email.trim()
-    if (phone) createDoctorInput.phone = phone
+    if (phone) createDoctorInput.phone = phone.trim()
     if (experience && !isNaN(parseInt(experience, 10))) {
       createDoctorInput.experience = parseInt(experience, 10)
     }
@@ -217,13 +230,15 @@ export default function DoctorsPage() {
               <CardContent>
                 <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={onSubmit}>
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
+                    <Label htmlFor="name">Name *</Label>
                     <Input
                       id="name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Enter doctor name"
+                      required
+                      className="border-red-200 focus:border-red-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -264,7 +279,11 @@ export default function DoctorsPage() {
                       value={experience}
                       onChange={(e) => setExperience(e.target.value)}
                       placeholder="Enter years of experience"
+                      min="0"
+                      max="50"
+                      className="border-blue-200 focus:border-blue-500"
                     />
+                    <p className="text-xs text-gray-500">Enter years of experience (0-50)</p>
                   </div>
                   <div className="md:col-span-2 flex gap-3 pt-4">
                     <Button

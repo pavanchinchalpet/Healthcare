@@ -102,9 +102,11 @@ export const apolloClient = new ApolloClient({
     watchQuery: {
       errorPolicy: 'all',
       notifyOnNetworkStatusChange: true,
+      fetchPolicy: 'network-only', // Always fetch fresh data by default
     },
     query: {
       errorPolicy: 'all',
+      fetchPolicy: 'network-only', // Always fetch fresh data by default
     },
     mutate: {
       errorPolicy: 'all',
@@ -115,6 +117,12 @@ export const apolloClient = new ApolloClient({
     enabled: process.env.NODE_ENV === 'development',
   },
 })
+
+// Function to clear cache (useful for debugging)
+export const clearApolloCache = () => {
+  apolloClient.clearStore();
+  console.log('🧹 Apollo Client cache cleared');
+}
 
 // Query result caching policies
 export const cachePolicies = {
@@ -133,19 +141,19 @@ export const cachePolicies = {
 // Optimized query options for better performance
 export const queryOptions = {
   patients: {
-    fetchPolicy: 'cache-first' as const,
+    fetchPolicy: 'network-only' as const, // Always fetch fresh data
     errorPolicy: 'all' as const,
     notifyOnNetworkStatusChange: false, // Reduce unnecessary re-renders
     returnPartialData: true, // Show partial data while loading
   },
   doctors: {
-    fetchPolicy: 'cache-first' as const,
+    fetchPolicy: 'network-only' as const, // Always fetch fresh data
     errorPolicy: 'all' as const,
     notifyOnNetworkStatusChange: false,
     returnPartialData: true,
   },
   appointments: {
-    fetchPolicy: 'cache-first' as const,
+    fetchPolicy: 'network-only' as const, // Always fetch fresh data
     errorPolicy: 'all' as const,
     notifyOnNetworkStatusChange: false,
     returnPartialData: true,

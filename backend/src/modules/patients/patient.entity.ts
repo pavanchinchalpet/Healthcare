@@ -8,9 +8,9 @@ export class Patient {
   @Field(() => ID)
   id: string;
 
-  @Column({ nullable: true })
-  @Field({ nullable: true })
-  name?: string;
+  @Column()
+  @Field()
+  name: string;
 
   @Column({ nullable: true })
   @Field(() => Int, { nullable: true })
@@ -31,6 +31,9 @@ export class Patient {
   @Column({ nullable: true })
   @Field({ nullable: true })
   address?: string;
+
+  @Column({ nullable: true })
+  password?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   @Field()
