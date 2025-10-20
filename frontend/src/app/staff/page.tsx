@@ -21,7 +21,13 @@ export default function StaffAccessPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const configured = process.env.NEXT_PUBLIC_STAFF_ACCESS_CODE || ''
-    console.log('Staff access attempt:', { configured, entered: code.trim(), role })
+    console.log('🔍 Environment Debug:', {
+      configured,
+      entered: code.trim(),
+      role,
+      envVar: process.env.NEXT_PUBLIC_STAFF_ACCESS_CODE,
+      allEnv: Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_'))
+    })
     
     if (!configured) {
       alert('Staff access code is not configured. Please set NEXT_PUBLIC_STAFF_ACCESS_CODE in .env.local')

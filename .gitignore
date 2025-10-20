@@ -159,3 +159,42 @@ Thumbs.db
 *.map
 *.js.map
 *.css.map
+
+# Healthcare project specific files
+# Environment variables
+.env.local
+.env.development.local
+.env.production.local
+
+# Database files
+healthcare.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary debugging files
+test-*.js
+debug-*.js
+*-debug.js
+*-test.js
+clean-*.js
+check-*.js
+prepare-*.js
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.backup
+*.bak
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
