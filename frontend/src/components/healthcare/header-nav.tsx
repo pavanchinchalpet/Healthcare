@@ -1,4 +1,9 @@
+"use client"
+import { useAuth } from '@/lib/auth'
+
 export default function HeaderNav() {
+  const { role, displayName, logout } = useAuth()
+
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
       <a
@@ -13,18 +18,41 @@ export default function HeaderNav() {
           <span className="font-medium">Healthcare</span>
         </div>
         <nav aria-label="Primary" className="flex items-center gap-4 md:gap-6 text-sm">
-          <a href="/" className="hover:text-black transition-colors">
-            Home
-          </a>
-          <a href="/patients" className="hover:text-black transition-colors">
-            Patients
-          </a>
-          <a href="/doctors" className="hover:text-black transition-colors">
-            Doctors
-          </a>
-          <a href="/appointments" className="hover:text-black transition-colors">
-            Appointments
-          </a>
+          {(role === 'admin' || role === 'doctor') && (
+            <a href="/dashboard" className="hover:text-black transition-colors">Home</a>
+          )}
+          {role === 'admin' && (
+            <>
+              <a href="/patients" className="hover:text-black transition-colors">Patients</a>
+              <a href="/doctors" className="hover:text-black transition-colors">Doctors</a>
+              <a href="/appointments" className="hover:text-black transition-colors">Appointments</a>
+            </>
+          )}
+          {role === 'patient' && (
+            <>
+              <a href="/appointments" className="hover:text-black transition-colors">My Appointments</a>
+              <a href="/doctors" className="hover:text-black transition-colors">Browse Doctors</a>
+            </>
+          )}
+          {role === 'doctor' && (
+            <a href="/appointments" className="hover:text-black transition-colors">My Schedule</a>
+          )}
+          {!role && (
+            <>
+              <a href="/patients" className="hover:text-black transition-colors">Patients</a>
+              <a href="/doctors" className="hover:text-black transition-colors">Doctors</a>
+              <a href="/appointments" className="hover:text-black transition-colors">Appointments</a>
+            </>
+          )}
+          {role ? (
+            <button onClick={logout} className="hover:text-black transition-colors">Logout{displayName ? ` (${displayName})` : ''}</button>
+          ) : (
+            <>
+              <a href="/staff" className="hover:text-black transition-colors">Staff</a>
+              <a href="/login" className="hover:text-black transition-colors">Login</a>
+              <a href="/register" className="hover:text-black transition-colors">Register</a>
+            </>
+          )}
         </nav>
       </div>
     </header>

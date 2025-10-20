@@ -8,9 +8,9 @@ export class Doctor {
   @Field(() => ID)
   id: string;
 
-  @Column({ nullable: true })
-  @Field({ nullable: true })
-  name?: string;
+  @Column()
+  @Field()
+  name: string;
 
   @Column({ nullable: true })
   @Field({ nullable: true })

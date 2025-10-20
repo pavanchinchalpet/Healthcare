@@ -2,6 +2,7 @@ import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { PatientService } from './patient.service';
 import { Patient } from './patient.entity';
 import { CreatePatientInput, UpdatePatientInput } from './dto/patient.input';
+import { PatientLoginInput } from './dto/patient-login.input';
 
 @Resolver(() => Patient)
 export class PatientResolver {
@@ -27,6 +28,21 @@ export class PatientResolver {
   @Query(() => Patient, { name: 'getPatientById' })
   findOne(@Args('id', { type: () => ID }) id: string) {
     return this.patientService.findOne(id);
+  }
+
+  @Mutation(() => Patient, { name: 'patientLogin' })
+  async login(@Args('loginInput') loginInput: PatientLoginInput) {
+    console.log('🔐 PatientResolver.login() called');
+    console.log('📧 Login email:', loginInput.email);
+    
+    try {
+      const patient = await this.patientService.login(loginInput);
+      console.log('✅ PatientResolver.login() success');
+      return patient;
+    } catch (error) {
+      console.error('❌ PatientResolver.login() error:', error.message);
+      throw error;
+    }
   }
 
   @Mutation(() => Patient, { name: 'createPatient' })

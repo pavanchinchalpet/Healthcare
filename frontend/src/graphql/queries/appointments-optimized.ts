@@ -31,6 +31,11 @@ export const GET_PATIENTS_LIGHT = gql`
       id
       name
       age
+      gender
+      email
+      phone
+      address
+      createdAt
     }
   }
 `
