@@ -43,26 +43,43 @@ export class CreatePatientInput {
 @InputType()
 export class UpdatePatientInput {
   @Field()
+  @IsString()
   id: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(150)
   age?: number;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsIn(['Male', 'Female', 'Other', 'Prefer not to say'])
   gender?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsEmail()
   email?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   password?: string;
 }

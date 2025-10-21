@@ -8,7 +8,7 @@ export class Patient {
   @Field(() => ID)
   id: string;
 
-  @Column()
+  @Column({ length: 255 })
   @Field()
   name: string;
 
@@ -16,15 +16,15 @@ export class Patient {
   @Field(() => Int, { nullable: true })
   age?: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 20 })
   @Field({ nullable: true })
   gender?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true, length: 255 })
   @Field({ nullable: true })
   email?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 20 })
   @Field({ nullable: true })
   phone?: string;
 
@@ -32,7 +32,7 @@ export class Patient {
   @Field({ nullable: true })
   address?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 255 })
   password?: string;
 
   @CreateDateColumn({ name: 'created_at' })
