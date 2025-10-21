@@ -67,16 +67,6 @@ export default function DataDebugComponent() {
           )}
         </div>
       </div>
-
-      <div className="mt-4 p-4 bg-yellow-50 rounded">
-        <h4 className="font-bold text-yellow-800">💡 Troubleshooting Tips:</h4>
-        <ul className="text-sm text-yellow-700 mt-2">
-          <li>• If counts are 0, check GraphQL queries</li>
-          <li>• If errors exist, check backend connection</li>
-          <li>• If loading is true, check network requests</li>
-          <li>• If data exists but UI doesn't show, check component rendering</li>
-        </ul>
-      </div>
     </div>
   )
 }

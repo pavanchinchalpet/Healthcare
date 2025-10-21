@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import HeaderNav from "@/components/healthcare/header-nav"
 import { AppointmentsSkeleton } from "@/components/appointments/appointments-skeleton"
+import { formatDate, formatTime, formatDateTime } from '@/lib/utils'
 
 interface Appointment {
   id: string
@@ -449,10 +450,10 @@ export default function AppointmentsPage() {
                       <td className="p-4">
                         <div className="text-sm">
                           <div className="font-semibold text-gray-900">
-                            {appointment.date ? new Date(appointment.date).toLocaleDateString() : 'Not scheduled'}
+                            {formatDate(appointment.date)}
                           </div>
                           <div className="text-gray-500">
-                            {appointment.time || 'Time not specified'}
+                            {formatTime(appointment.time)}
                           </div>
                         </div>
                       </td>
@@ -472,7 +473,7 @@ export default function AppointmentsPage() {
                       </td>
                       <td className="p-4">
                         <div className="text-sm text-gray-600">
-                          {new Date(appointment.createdAt).toLocaleDateString()}
+                          {formatDate(appointment.createdAt)}
                         </div>
                       </td>
                       <td className="p-4">

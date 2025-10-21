@@ -18,10 +18,10 @@ export default function HeaderNav() {
           <span className="font-medium">Healthcare</span>
         </div>
         <nav aria-label="Primary" className="flex items-center gap-4 md:gap-6 text-sm">
-          {(role === 'admin' || role === 'doctor') && (
+          {(role === 'admin' || role === 'doctor' || role === 'staff') && (
             <a href="/dashboard" className="hover:text-black transition-colors">Home</a>
           )}
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'staff') && (
             <>
               <a href="/patients" className="hover:text-black transition-colors">Patients</a>
               <a href="/doctors" className="hover:text-black transition-colors">Doctors</a>
