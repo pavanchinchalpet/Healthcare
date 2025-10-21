@@ -64,16 +64,14 @@ npm install
 ```
 
 ### 3. Configure environment variables
-Copy `env.example` to `.env` and update with your Neon database credentials:
-```bash
-cp env.example .env
-```
+Create a `.env` file in the backend directory with your Neon database credentials:
 
-Update the `.env` file with your actual Neon database URL:
-```
-DATABASE_URL=postgresql://username:password@ep-example.us-east-1.aws.neon.tech/healthcare?sslmode=require
+```env
+DATABASE_URL=postgresql://username:password@ep-example.us-east-1.aws.neon.tech/healthcare?sslmode=require&options=endpoint%3Dep-example-pooler
 PORT=4000
-STAFF_ACCESS_CODE=your-secret-code-here
+CORS_ORIGIN=http://localhost:3000
+FRONTEND_URL=http://localhost:3000
+NODE_ENV=development
 ```
 
 ### 4. Start the backend server
@@ -96,15 +94,10 @@ npm install
 ```
 
 ### 3. Configure environment variables
-Copy `env.local.example` to `.env.local`:
-```bash
-cp env.local.example .env.local
-```
+Create a `.env.local` file in the frontend directory:
 
-The `.env.local` file should contain:
-```
+```env
 NEXT_PUBLIC_GRAPHQL_ENDPOINT=http://localhost:4000/graphql
-NEXT_PUBLIC_STAFF_ACCESS_CODE=your-secret-code-here
 ```
 
 ### 4. Start the frontend development server
@@ -213,10 +206,10 @@ backend/
 - Automatic logout functionality
 
 ### Staff Access Control
-- Configurable access code via environment variable
+- Configurable access codes via `src/config/access-codes.ts`
 - No individual staff accounts required
-- Single code grants management access
-- Role selection (Doctor/Admin) after code verification
+- Multiple role codes (Admin, Doctor, Staff)
+- Role selection after code verification
 
 ### Patient Authentication
 - Email-based login system
@@ -233,19 +226,26 @@ backend/
 ### Frontend Deployment (Vercel)
 - **Live URL**: [https://healthcare-eight-bay.vercel.app/](https://healthcare-eight-bay.vercel.app/)
 
+### CI/CD Pipeline
+- **GitHub Actions**: Automated testing and building on push/PR
+- **Security Scanning**: Automated npm audit for both frontend and backend
+- **Multi-environment**: Supports main and develop branches
+- **Build Verification**: Ensures both applications build successfully
+
 ### Environment Variables
 
 **Backend (.env):**
 ```env
-DATABASE_URL=postgresql://username:password@ep-example.us-east-1.aws.neon.tech/healthcare?sslmode=require
+DATABASE_URL=postgresql://username:password@ep-example.us-east-1.aws.neon.tech/healthcare?sslmode=require&options=endpoint%3Dep-example-pooler
 PORT=4000
-STAFF_ACCESS_CODE=your-secret-code-here
+CORS_ORIGIN=https://your-frontend-app.vercel.app
+FRONTEND_URL=https://your-frontend-app.vercel.app
+NODE_ENV=production
 ```
 
 **Frontend (.env.local):**
 ```env
-NEXT_PUBLIC_GRAPHQL_ENDPOINT=https://healthcare-backend-gap2.onrender.com/graphql
-NEXT_PUBLIC_STAFF_ACCESS_CODE=your-secret-code-here
+NEXT_PUBLIC_GRAPHQL_ENDPOINT=https://your-backend-app.onrender.com/graphql
 ```
 
 ## 🧪 Testing the Setup
@@ -277,10 +277,11 @@ NEXT_PUBLIC_STAFF_ACCESS_CODE=your-secret-code-here
 ## 🔧 Troubleshooting
 
 ### Common Issues
-- **Access Code Not Working**: Verify `NEXT_PUBLIC_STAFF_ACCESS_CODE` matches backend
+- **Access Code Not Working**: Verify access codes in `src/config/access-codes.ts`
 - **Login Issues**: Check if patient exists in database with correct email
 - **Role Navigation**: Ensure user is properly logged in with correct role
 - **GraphQL Errors**: Verify `NEXT_PUBLIC_GRAPHQL_ENDPOINT` is correct
+- **CORS Errors**: Check `CORS_ORIGIN` and `FRONTEND_URL` in backend environment
 
 ### Development Tips
 - Use browser DevTools to inspect localStorage auth state

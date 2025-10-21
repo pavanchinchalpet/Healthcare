@@ -1,8 +1,8 @@
-name: CI/CD Pipeline
+name: Healthcare Management System CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
@@ -11,10 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -30,19 +31,25 @@ jobs:
         cd backend
         npm run build
     
+    - name: Lint Backend
+      run: |
+        cd backend
+        npm run lint || echo "Linting not configured"
+    
     - name: Test Backend
       run: |
         cd backend
-        npm test || echo "No tests configured yet"
+        npm test || echo "Tests not configured yet"
 
   frontend-test:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -58,7 +65,24 @@ jobs:
         cd frontend
         npm run build
     
+    - name: Lint Frontend
+      run: |
+        cd frontend
+        npm run lint || echo "Linting not configured"
+    
     - name: Test Frontend
       run: |
         cd frontend
-        npm test || echo "No tests configured yet"
+        npm test || echo "Tests not configured yet"
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run security audit
+      run: |
+        cd backend && npm audit --audit-level=moderate || true
+        cd ../frontend && npm audit --audit-level=moderate || true

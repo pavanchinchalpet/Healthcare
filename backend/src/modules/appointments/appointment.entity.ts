@@ -18,13 +18,13 @@ export class Appointment {
   @Field()
   doctorId: string;
 
-  @Column({ name: 'date', nullable: true })
-  @Field({ nullable: true })
-  date?: string;
+  @Column({ name: 'date', length: 10 })
+  @Field()
+  date: string;
 
-  @Column({ name: 'time', nullable: true })
-  @Field({ nullable: true })
-  time?: string;
+  @Column({ name: 'time', length: 8 })
+  @Field()
+  time: string;
 
   @Column({ type: 'text', nullable: true })
   @Field({ nullable: true })

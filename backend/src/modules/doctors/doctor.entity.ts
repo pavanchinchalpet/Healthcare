@@ -8,19 +8,19 @@ export class Doctor {
   @Field(() => ID)
   id: string;
 
-  @Column()
+  @Column({ length: 255 })
   @Field()
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 255 })
   @Field({ nullable: true })
   specialization?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 255 })
   @Field({ nullable: true })
   email?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 20 })
   @Field({ nullable: true })
   phone?: string;
 

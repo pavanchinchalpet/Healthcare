@@ -125,6 +125,13 @@ export default function AppointmentsPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!patientId || !doctorId || !date || !time) {
+      alert('Please fill in all required fields (Patient, Doctor, Date, and Time)')
+      return
+    }
+    
     const createAppointmentInput: any = {
       patientId,
       doctorId,
@@ -312,9 +319,18 @@ export default function AppointmentsPage() {
                   <Label htmlFor="date">Appointment Date</Label>
                   <Input
                     id="date"
-                    type="datetime-local"
+                    type="date"
                     value={date}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time">Appointment Time</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={time}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTime(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">

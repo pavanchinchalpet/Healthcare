@@ -33,20 +33,33 @@ export class CreateDoctorInput {
 @InputType()
 export class UpdateDoctorInput {
   @Field()
+  @IsString()
   id: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   specialization?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsEmail()
   email?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
   experience?: number;
 }

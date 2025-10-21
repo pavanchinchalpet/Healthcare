@@ -191,34 +191,27 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center p-3 bg-blue-50 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">New patient registered</p>
-                    <p className="text-xs text-gray-500">Just now</p>
+                {appointmentsData?.getAppointments?.slice(0, 5).map((appointment: any, index: number) => (
+                  <div key={appointment.id} className="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        Appointment {appointment.status === 'Scheduled' ? 'scheduled' : 
+                                     appointment.status === 'Completed' ? 'completed' : 
+                                     appointment.status === 'Cancelled' ? 'cancelled' : 'updated'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(appointment.createdAt)} - {appointment.time || 'Time TBD'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center p-3 bg-green-50 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">Appointment completed</p>
-                    <p className="text-xs text-gray-500">5 minutes ago</p>
+                ))}
+                {(!appointmentsData?.getAppointments || appointmentsData.getAppointments.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No recent activity</p>
+                    <p className="text-sm">Activity will appear here as appointments are created</p>
                   </div>
-                </div>
-                <div className="flex items-center p-3 bg-purple-50 rounded-lg">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">Doctor schedule updated</p>
-                    <p className="text-xs text-gray-500">10 minutes ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 bg-orange-50 rounded-lg">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">New appointment scheduled</p>
-                    <p className="text-xs text-gray-500">15 minutes ago</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
