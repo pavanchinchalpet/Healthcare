@@ -12,6 +12,7 @@ import { GET_APPOINTMENTS_LIGHT, GET_DOCTORS_LIGHT_STANDALONE } from '@/graphql/
 import { UPDATE_APPOINTMENT, DELETE_APPOINTMENT } from '@/graphql/mutations/appointments'
 import { queryOptions } from '@/lib/apollo-client'
 import { useAuth } from '@/lib/auth'
+import { formatDate, formatTime } from '@/lib/utils'
 
 interface Appointment {
   id: string
@@ -114,22 +115,6 @@ export default function PatientAppointmentsPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    })
-  }
 
   return (
     <>

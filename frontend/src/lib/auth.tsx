@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
-type UserRole = 'patient' | 'doctor' | 'admin' | null
+type UserRole = 'patient' | 'doctor' | 'admin' | 'staff' | null
 
 export interface AuthState {
   role: UserRole
@@ -49,7 +49,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(() => ({
     ...state,
     login: (next: AuthState) => setState(next),
-    logout: () => setState(defaultState),
+    logout: () => {
+      setState(defaultState)
+      // Redirect to landing page after logout
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
+    },
   }), [state])
 
   return (

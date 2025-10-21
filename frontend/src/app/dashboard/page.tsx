@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { GET_PATIENTS_LIGHT, GET_DOCTORS_LIGHT, GET_APPOINTMENTS_LIGHT } from '@/graphql/queries/appointments-optimized'
 import DataDebugComponent from '@/components/debug/data-debug'
+import { formatDate } from '@/lib/utils'
 
 interface DashboardStats {
   totalPatients: number

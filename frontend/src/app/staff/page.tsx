@@ -6,12 +6,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/lib/auth'
+import { validateAccessCode, type AccessCodeRole } from '@/config/access-codes'
 import { useState, useEffect } from 'react'
+
+type UserRole = 'patient' | 'doctor' | 'admin' | 'staff' | null
 
 export default function StaffAccessPage() {
   const { login } = useAuth()
   const [code, setCode] = useState('')
-  const [role, setRole] = useState<'doctor' | 'admin'>('admin')
+  const [role, setRole] = useState<'doctor' | 'admin' | 'staff'>('admin')
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -20,16 +23,20 @@ export default function StaffAccessPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const configured = process.env.NEXT_PUBLIC_STAFF_ACCESS_CODE || ''
-    console.log('Staff access attempt:', { configured, entered: code.trim(), role })
     
-    if (!configured) {
-      alert('Staff access code is not configured. Please set NEXT_PUBLIC_STAFF_ACCESS_CODE in .env.local')
-      return
-    }
-    if (code.trim() === configured) {
+    console.log('🔍 Access Code Debug:', {
+      entered: code.trim(),
+      role,
+      isValid: validateAccessCode(code, role.toUpperCase() as AccessCodeRole)
+    })
+    
+    if (validateAccessCode(code, role.toUpperCase() as AccessCodeRole)) {
       console.log('Access code correct, logging in...')
-      login({ role, userId: role, displayName: role === 'admin' ? 'Admin' : 'Doctor' })
+      login({ 
+        role: role as UserRole, 
+        userId: role, 
+        displayName: role === 'admin' ? 'Admin' : role === 'doctor' ? 'Doctor' : 'Staff' 
+      })
       console.log('Login called, redirecting to dashboard...')
       window.location.href = '/dashboard'
     } else {
@@ -79,13 +86,14 @@ export default function StaffAccessPage() {
                   <form className="space-y-6" onSubmit={onSubmit}>
                     <div className="space-y-2">
                       <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
-                      <Select value={role} onValueChange={(value: 'doctor' | 'admin') => setRole(value)}>
+                      <Select value={role} onValueChange={(value: 'doctor' | 'admin' | 'staff') => setRole(value)}>
                         <SelectTrigger className="h-12 text-lg">
                           <SelectValue placeholder="Select your role" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="doctor">Doctor</SelectItem>
+                          <SelectItem value="staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

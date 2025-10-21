@@ -57,40 +57,9 @@ const cache = new InMemoryCache({
           }
         }
       }
-    },
-    Patient: {
-      fields: {
-        // Normalize patient data
-        createdAt: {
-          read(existing) {
-            return existing ? new Date(existing) : null
-          }
-        }
-      }
-    },
-    Doctor: {
-      fields: {
-        createdAt: {
-          read(existing) {
-            return existing ? new Date(existing) : null
-          }
-        }
-      }
-    },
-    Appointment: {
-      fields: {
-        createdAt: {
-          read(existing) {
-            return existing ? new Date(existing) : null
-          }
-        },
-        date: {
-          read(existing) {
-            return existing ? new Date(existing) : null
-          }
-        }
-      }
     }
+    // Removed automatic Date conversion to prevent React rendering errors
+    // Date formatting should be handled in components where needed
   }
 })
 

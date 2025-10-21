@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import HeaderNav from "@/components/healthcare/header-nav"
 import { DoctorsSkeleton } from "@/components/doctors/doctors-skeleton"
+import { formatDate } from '@/lib/utils'
 
 interface Doctor {
   id: string
@@ -393,7 +394,7 @@ export default function DoctorsPage() {
                         </td>
                         <td className="p-4">
                           <div className="text-sm text-gray-600">
-                            {new Date(doctor.createdAt).toLocaleDateString()}
+                            {formatDate(doctor.createdAt)}
                           </div>
                         </td>
                         <td className="p-4">

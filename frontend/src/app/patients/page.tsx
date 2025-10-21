@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import HeaderNav from "@/components/healthcare/header-nav"
 import { PatientsSkeleton } from "@/components/patients/patients-skeleton"
+import { formatDate } from '@/lib/utils'
 
 interface Patient {
   id: string
@@ -593,7 +594,7 @@ export default function PatientsPage() {
                         </td>
                         <td className="p-4">
                           <div className="text-sm text-gray-600">
-                            {new Date(patient.createdAt).toLocaleDateString()}
+                            {formatDate(patient.createdAt)}
                           </div>
                         </td>
                         <td className="p-4">
