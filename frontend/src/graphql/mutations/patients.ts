@@ -45,6 +45,21 @@ export const UPDATE_PATIENT = gql`
   }
 `
 
+export const RESET_PATIENT_PASSWORD = gql`
+  mutation ResetPatientPassword($resetPasswordInput: ResetPasswordInput!) {
+    resetPatientPassword(resetPasswordInput: $resetPasswordInput) {
+      id
+      name
+      age
+      gender
+      email
+      phone
+      address
+      createdAt
+    }
+  }
+`
+
 export const DELETE_PATIENT = gql`
   mutation DeletePatient($id: ID!) {
     deletePatient(id: $id)

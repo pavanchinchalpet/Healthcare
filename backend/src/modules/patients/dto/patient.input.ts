@@ -83,3 +83,14 @@ export class UpdatePatientInput {
   @IsString()
   password?: string;
 }
+
+@InputType()
+export class ResetPasswordInput {
+  @Field()
+  @IsEmail()
+  email: string;
+
+  @Field()
+  @IsString()
+  newPassword: string;
+}

@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { PatientService } from './patient.service';
 import { Patient } from './patient.entity';
-import { CreatePatientInput, UpdatePatientInput } from './dto/patient.input';
+import { CreatePatientInput, UpdatePatientInput, ResetPasswordInput } from './dto/patient.input';
 import { PatientLoginInput } from './dto/patient-login.input';
 
 @Resolver(() => Patient)
@@ -74,5 +74,20 @@ export class PatientResolver {
   async bulkCreate(@Args('patients', { type: () => [CreatePatientInput] }) patients: CreatePatientInput[]) {
     console.log('🔥 Bulk upload started for patients:', patients.length);
     return this.patientService.bulkCreate(patients);
+  }
+
+  @Mutation(() => Patient, { name: 'resetPatientPassword' })
+  async resetPassword(@Args('resetPasswordInput') resetPasswordInput: ResetPasswordInput) {
+    console.log('🔄 PatientResolver.resetPassword() called');
+    console.log('📧 Reset email:', resetPasswordInput.email);
+    
+    try {
+      const patient = await this.patientService.resetPassword(resetPasswordInput);
+      console.log('✅ PatientResolver.resetPassword() success');
+      return patient;
+    } catch (error) {
+      console.error('❌ PatientResolver.resetPassword() error:', error.message);
+      throw error;
+    }
   }
 }
