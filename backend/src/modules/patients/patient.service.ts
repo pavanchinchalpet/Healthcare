@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Patient } from './patient.entity';
-import { CreatePatientInput, UpdatePatientInput } from './dto/patient.input';
+import { CreatePatientInput, UpdatePatientInput, ResetPasswordInput } from './dto/patient.input';
 import { PatientLoginInput } from './dto/patient-login.input';
 
 @Injectable()
@@ -160,5 +160,38 @@ export class PatientService {
     
     console.log('🎉 Bulk upload completed:', createdPatients.length, 'patients created');
     return createdPatients;
+  }
+
+  async resetPassword(resetPasswordInput: ResetPasswordInput): Promise<Patient> {
+    console.log('🔄 PatientService.resetPassword() called');
+    console.log('📧 Reset email:', resetPasswordInput.email);
+    
+    try {
+      // Find patient by email
+      const patient = await this.findByEmail(resetPasswordInput.email);
+      if (!patient) {
+        throw new Error('Patient not found with this email');
+      }
+      
+      // Hash the new password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(resetPasswordInput.newPassword, saltRounds);
+      
+      // Update the password
+      await this.patientRepository.update(patient.id, { password: hashedPassword });
+      
+      console.log('✅ Password reset successful for:', patient.name);
+      
+      // Return updated patient without password
+      const updatedPatient = await this.findOne(patient.id);
+      if (updatedPatient) {
+        delete updatedPatient.password;
+      }
+      
+      return updatedPatient;
+    } catch (error) {
+      console.error('❌ PatientService.resetPassword() error:', error.message);
+      throw error;
+    }
   }
 }

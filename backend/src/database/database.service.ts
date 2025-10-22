@@ -14,6 +14,7 @@ export class DatabaseService {
       return 'Database connection successful';
     } catch (error) {
       console.error('Database connection failed:', error.message);
+      console.error('Full error:', error);
       return `Database connection failed: ${error.message}`;
     }
   }
