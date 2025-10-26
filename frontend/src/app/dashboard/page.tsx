@@ -45,22 +45,12 @@ export default function DashboardPage() {
     }
   }, [patientsData, doctorsData, appointmentsData])
 
-  // Redirect if not authenticated or not a staff role
+  // Redirect only patients
   useEffect(() => {
-    if (isClient) {
-      if (!role) {
-        window.location.href = '/'
-      } else if (role === 'patient') {
-        window.location.href = '/patient'
-      }
+    if (isClient && role === 'patient') {
+      window.location.href = '/patient'
     }
   }, [isClient, role])
-
-  if (!isClient || !role || role === 'patient') {
-    return (
-      <main className="min-h-screen bg-blue-50"></main>
-    )
-  }
 
   return (
     <main className="min-h-screen bg-blue-50">
