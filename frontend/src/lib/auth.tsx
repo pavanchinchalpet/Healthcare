@@ -50,8 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ...state,
     login: (next: AuthState) => setState(next),
     logout: () => {
+      // Reset state to logged out
       setState(defaultState)
-      // Redirect to landing page after logout
+      // Redirect immediately without delay
       if (typeof window !== 'undefined') {
         window.location.href = '/'
       }
