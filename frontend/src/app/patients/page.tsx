@@ -77,12 +77,10 @@ export default function PatientsPage() {
     },
   })
 
-  // Redirect non-staff users
+  // Redirect only patients (staff/admin/doctor can access)
   useEffect(() => {
     if (role === 'patient') {
       window.location.href = '/patient'
-    } else if (role === null) {
-      window.location.href = '/'
     }
   }, [role])
 

@@ -1,37 +1,7 @@
 'use client'
 
-import { useAuth } from '@/lib/auth'
-import { useEffect, useState } from 'react'
-
 export default function HealthcarePage() {
-  const { role } = useAuth()
-  const [isClient, setIsClient] = useState(false)
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // Redirect logged-in users to their respective dashboards
-  useEffect(() => {
-    if (isClient && role) {
-      if (role === 'patient') {
-        window.location.href = '/patient'
-      } else if (role === 'admin' || role === 'doctor' || role === 'staff') {
-        window.location.href = '/dashboard'
-      }
-    }
-  }, [isClient, role])
-
-  // Show loading state during redirect
-  if (isClient && role) {
-    return (
-      <main className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        </div>
-      </main>
-    )
-  }
 
   return (
     <>
