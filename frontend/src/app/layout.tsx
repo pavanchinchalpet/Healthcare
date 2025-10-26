@@ -9,7 +9,6 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Healthcare Management System',
   description: 'Comprehensive healthcare management system for patients, doctors, and appointments',
-  manifest: '/manifest.json',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

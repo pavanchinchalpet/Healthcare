@@ -72,12 +72,10 @@ export default function PatientAppointmentsPage() {
     (apt: Appointment) => apt.patientId === userId
   ) || []
 
-  // Redirect staff members and unauthenticated users
+  // Redirect staff members only (allow unauthenticated access)
   useEffect(() => {
     if (role && role !== 'patient') {
       window.location.href = '/dashboard'
-    } else if (role === null) {
-      window.location.href = '/'
     }
   }, [role])
 

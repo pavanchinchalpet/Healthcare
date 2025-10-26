@@ -51,9 +51,14 @@ export class PatientService {
         throw new Error('Patient not found with this email');
       }
       
-      // Check if patient has a password set
+      // If patient has no password, allow login with any password (for existing patients)
       if (!patient.password) {
-        throw new Error('No password set for this patient. Please contact support.');
+        console.log(`⚠️ No password set for patient: ${patient.name}, allowing login`);
+        // Remove password from response
+        delete patient.password;
+        const duration = Date.now() - startTime;
+        console.log(`✅ Patient login successful (no password) in ${duration}ms: ${patient.name}`);
+        return patient;
       }
       
       // Verify password
