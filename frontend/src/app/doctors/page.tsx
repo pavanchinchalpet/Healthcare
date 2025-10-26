@@ -4,14 +4,9 @@ import { useQuery, useMutation } from '@apollo/client'
 import { GET_DOCTORS_LIGHT_STANDALONE } from '@/graphql/queries/appointments-optimized'
 import { CREATE_DOCTOR, UPDATE_DOCTOR, DELETE_DOCTOR } from '@/graphql/mutations/doctors'
 import { queryOptions } from '@/lib/apollo-client'
-import { useState, useMemo } from 'react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import HeaderNav from "@/components/healthcare/header-nav"
+import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '@/lib/auth'
 import { DoctorsSkeleton } from "@/components/doctors/doctors-skeleton"
-import { formatDate } from '@/lib/utils'
 
 interface Doctor {
   id: string
@@ -24,14 +19,8 @@ interface Doctor {
 }
 
 export default function DoctorsPage() {
-  // Optimized query with better fetch policy
-  // Optimized query with better performance
-  const { loading, error, data } = useQuery(GET_DOCTORS_LIGHT_STANDALONE, {
-    ...queryOptions.doctors,
-    fetchPolicy: 'cache-first',
-    errorPolicy: 'all',
-    notifyOnNetworkStatusChange: false, // Reduce re-renders
-  })
+  const { role, displayName, logout } = useAuth()
+  const [searchTerm, setSearchTerm] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null)
 
@@ -41,57 +30,65 @@ export default function DoctorsPage() {
   const [phone, setPhone] = useState('')
   const [experience, setExperience] = useState<string>('')
 
-  // Memoized loading state for better performance
-  const isLoading = useMemo(() => loading, [loading])
+  const { loading, error, data } = useQuery(GET_DOCTORS_LIGHT_STANDALONE, {
+    ...queryOptions.doctors,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all',
+    notifyOnNetworkStatusChange: false,
+  })
+
+  const doctors = useMemo(() => data?.getDoctors || [], [data])
+
+  const filteredDoctors = useMemo(() => {
+    if (!searchTerm.trim()) return doctors
+    const term = searchTerm.toLowerCase()
+    return doctors.filter((doctor: Doctor) =>
+      doctor.name?.toLowerCase().includes(term) ||
+      doctor.specialization?.toLowerCase().includes(term) ||
+      doctor.email?.toLowerCase().includes(term)
+    )
+  }, [doctors, searchTerm])
 
   const [createDoctor, { loading: creating }] = useMutation(CREATE_DOCTOR, {
     refetchQueries: [{ query: GET_DOCTORS_LIGHT_STANDALONE }],
     awaitRefetchQueries: true,
-    onError: (error) => {
-      console.error('Error creating doctor:', error)
-      alert(`Error: ${error.message}`)
-    },
     onCompleted: () => {
       alert('Doctor created successfully!')
-    }
+      handleCancel()
+    },
   })
 
   const [updateDoctor, { loading: updating }] = useMutation(UPDATE_DOCTOR, {
     refetchQueries: [{ query: GET_DOCTORS_LIGHT_STANDALONE }],
     awaitRefetchQueries: true,
-    onError: (error) => {
-      console.error('Error updating doctor:', error)
-      alert(`Error: ${error.message}`)
-    },
     onCompleted: () => {
       alert('Doctor updated successfully!')
-    }
+      handleCancel()
+    },
   })
 
-  const [deleteDoctor, { loading: deleting }] = useMutation(DELETE_DOCTOR, {
+  const [deleteDoctor] = useMutation(DELETE_DOCTOR, {
     refetchQueries: [{ query: GET_DOCTORS_LIGHT_STANDALONE }],
     awaitRefetchQueries: true,
-    onError: (error) => {
-      console.error('Error deleting doctor:', error)
-      alert(`Error: ${error.message}`)
-    },
     onCompleted: () => {
       alert('Doctor deleted successfully!')
-    }
+    },
   })
+
+  // Redirect non-staff users
+  useEffect(() => {
+    if (role === 'patient') {
+      window.location.href = '/patient'
+    } else if (role === null) {
+      window.location.href = '/'
+    }
+  }, [role])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate required fields
     if (!name.trim()) {
       alert('Name is required!')
-      return
-    }
-    
-    // Validate experience range
-    if (experience && (isNaN(parseInt(experience, 10)) || parseInt(experience, 10) < 0 || parseInt(experience, 10) > 50)) {
-      alert('Experience must be between 0 and 50 years!')
       return
     }
     
@@ -104,25 +101,10 @@ export default function DoctorsPage() {
     }
 
     if (editingDoctor) {
-      // Update existing doctor
-      const updateDoctorInput = {
-        id: editingDoctor.id,
-        ...createDoctorInput
-      }
-      await updateDoctor({ variables: { updateDoctorInput } })
+      await updateDoctor({ variables: { updateDoctorInput: { id: editingDoctor.id, ...createDoctorInput } } })
     } else {
-      // Create new doctor
       await createDoctor({ variables: { createDoctorInput } })
     }
-
-    // Reset form
-    setName('')
-    setSpecialization('')
-    setEmail('')
-    setPhone('')
-    setExperience('')
-    setShowAddForm(false)
-    setEditingDoctor(null)
   }
 
   const handleEdit = (doctor: Doctor) => {
@@ -151,323 +133,263 @@ export default function DoctorsPage() {
     setExperience('')
   }
 
-  // Show skeleton loading state
-  if (isLoading) {
-    return (
-      <>
-        <HeaderNav />
-        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-          <DoctorsSkeleton />
-        </main>
-      </>
-    )
+  if (loading) {
+    return <DoctorsSkeleton />
   }
-  
-  // Show error state
+
   if (error) {
     return (
-      <>
-        <HeaderNav />
-        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-          <div className="text-center text-destructive">Error: {error.message}</div>
-        </main>
-      </>
+      <main className="min-h-screen bg-blue-50">
+        <div className="p-6 text-center text-red-600">Error: {error.message}</div>
+      </main>
     )
   }
 
   return (
-    <>
-      <HeaderNav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <section aria-labelledby="doctors-title" className="mb-6 md:mb-8">
-          <h1 id="doctors-title" className="text-3xl md:text-4xl font-semibold text-pretty">
-            Doctors
-          </h1>
-          <p className="mt-3 text-muted-foreground leading-relaxed">View and manage doctor profiles.</p>
-        </section>
-
-        <section aria-label="Doctor management" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-1 bg-green-600 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-gray-800">Medical Staff</h2>
+    <main className="min-h-screen bg-blue-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <a href="/" className="flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span className="font-semibold text-gray-800">HealthCare Pro</span>
+              </a>
             </div>
-            <Button
-              onClick={() => setShowAddForm(!showAddForm)}
-              variant={showAddForm ? "outline" : "default"}
-              className={showAddForm ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-green-600 hover:bg-green-700 text-white"}
-            >
-              {showAddForm ? (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Cancel
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add New Doctor
-                </>
-              )}
-            </Button>
-          </div>
 
-          {showAddForm && (
-            <Card className="border-l-4 border-l-green-500 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                <CardTitle className="flex items-center gap-2 text-green-900">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {editingDoctor ? 'Edit Doctor Profile' : 'Add New Doctor'}
-                </CardTitle>
-                <CardDescription className="text-green-700">
-                  {editingDoctor ? 'Update doctor credentials and specialization details' : 'Enter comprehensive doctor information and medical expertise'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={onSubmit}>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter doctor name"
-                      required
-                      className="border-red-200 focus:border-red-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="specialization">Specialization</Label>
-                    <Input
-                      id="specialization"
-                      type="text"
-                      value={specialization}
-                      onChange={(e) => setSpecialization(e.target.value)}
-                      placeholder="Enter specialization"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="experience">Experience (years)</Label>
-                    <Input
-                      id="experience"
-                      type="number"
-                      value={experience}
-                      onChange={(e) => setExperience(e.target.value)}
-                      placeholder="Enter years of experience"
-                      min="0"
-                      max="50"
-                      className="border-blue-200 focus:border-blue-500"
-                    />
-                    <p className="text-xs text-gray-500">Enter years of experience (0-50)</p>
-                  </div>
-                  <div className="md:col-span-2 flex gap-3 pt-4">
-                    <Button
-                      type="submit"
-                      disabled={creating || updating || !name.trim()}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6"
-                    >
-                      {creating || updating ? (
-                        <>
-                          <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Saving...
-                        </>
-                      ) : editingDoctor ? (
-                        <>
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Update Doctor
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                          Add Doctor
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleCancel}
-                      className="border-gray-300 hover:bg-gray-50"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+            {/* Navigation */}
+            <nav className="flex items-center gap-6">
+              <a href="/dashboard" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                Dashboard
+              </a>
+              <a href="/doctors" className="flex items-center gap-1 text-blue-600 font-medium bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Doctors
+              </a>
+              <a href="/patients" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Patients
+              </a>
+              <a href="/appointments" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Appointments
+              </a>
+            </nav>
 
-          <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-green-50">
-              <CardTitle className="flex items-center gap-3 text-gray-800">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                Doctor Profiles
-                <span className="ml-auto text-sm font-normal text-gray-500">
-                  {data?.getDoctors?.length || 0} doctors
-                </span>
-              </CardTitle>
-              <CardDescription className="text-gray-600">Complete medical staff database with specializations and credentials</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr className="border-b">
-                      <th className="text-left p-4 font-semibold text-gray-700">Doctor Name</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">Specialization</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">Experience</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">Contact</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">Registered</th>
-                      <th className="text-left p-4 font-semibold text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data?.getDoctors?.map((doctor: Doctor) => (
-                      <tr key={doctor.id} className="border-b hover:bg-green-50/50 transition-colors">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                              <span className="text-green-600 font-semibold text-sm">
-                                {doctor.name?.charAt(0)?.toUpperCase() || '?'}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900">{doctor.name || '-'}</div>
-                              <div className="text-sm text-gray-500">Doctor ID: {doctor.id.slice(0, 8)}...</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {doctor.specialization || 'Not specified'}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                            {doctor.experience ? `${doctor.experience} years` : 'Not specified'}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-sm">
-                            <div className="text-gray-900">{doctor.email || 'No email'}</div>
-                            <div className="text-gray-500">{doctor.phone || 'No phone'}</div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-sm text-gray-600">
-                            {formatDate(doctor.createdAt)}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(doctor)}
-                              disabled={deleting}
-                              className="border-blue-200 text-blue-600 hover:bg-blue-50"
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(doctor.id)}
-                              disabled={deleting}
-                              className="bg-red-100 text-red-600 hover:bg-red-200 border-red-200"
-                            >
-                              {deleting ? (
-                                <>
-                                  <svg className="w-4 h-4 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  Delete
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* User & Logout */}
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-sm text-gray-800">{displayName || 'User'}</div>
+                <div className="text-xs text-gray-600">{role?.charAt(0).toUpperCase()}{role?.slice(1)}</div>
               </div>
-            </CardContent>
-          </Card>
+              <button 
+                onClick={logout}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+              >
+                <span>Logout</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          {data?.getDoctors?.length === 0 && (
-            <Card className="border-dashed border-2 border-gray-200">
-              <CardContent className="text-center py-16">
-                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Title Section */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-blue-600 mb-1">Doctor Management</h1>
+          <p className="text-gray-600">Manage doctor profiles and information</p>
+        </div>
+
+        {/* Search and Add Button */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-1 relative">
+            <svg className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search doctors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Doctor
+          </button>
+        </div>
+
+        {/* Add/Edit Form Modal */}
+        {showAddForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{editingDoctor ? 'Edit Doctor' : 'Add Doctor'}</h2>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                  <input
+                    type="text"
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience (years)</label>
+                  <input
+                    type="number"
+                    value={experience}
+                    onChange={(e) => setExperience(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={creating || updating}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    {creating ? 'Creating...' : updating ? 'Updating...' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Doctor Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDoctors.map((doctor: Doctor) => (
+            <div key={doctor.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              {/* Doctor Icon and Name */}
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Doctors Found</h3>
-                <p className="text-gray-500 mb-6">Start building your medical staff database by adding your first doctor.</p>
-                <Button 
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900">{doctor.name}</h3>
+                  {doctor.specialization && (
+                    <span className="inline-block px-3 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium mt-1">
+                      {doctor.specialization}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="space-y-2 mb-4">
+                {doctor.email && (
+                  <div className="text-sm">
+                    <span className="text-gray-600">Email:</span>{' '}
+                    <span className="text-gray-900">{doctor.email}</span>
+                  </div>
+                )}
+                {doctor.phone && (
+                  <div className="text-sm">
+                    <span className="text-gray-600">Phone:</span>{' '}
+                    <span className="text-gray-900">{doctor.phone}</span>
+                  </div>
+                )}
+                {doctor.experience && (
+                  <div className="text-sm">
+                    <span className="text-gray-600">Experience:</span>{' '}
+                    <span className="text-gray-900">{doctor.experience} years</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => handleEdit(doctor)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm font-medium"
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Add First Doctor
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </section>
-      </main>
-    </>
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(doctor.id)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredDoctors.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No doctors found</p>
+          </div>
+        )}
+      </div>
+    </main>
   )
 }

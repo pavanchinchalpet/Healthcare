@@ -42,8 +42,7 @@ export class PatientService {
   }
 
   async login(loginInput: PatientLoginInput): Promise<Patient> {
-    console.log('🔐 PatientService.login() called');
-    console.log('📧 Login email:', loginInput.email);
+    const startTime = Date.now();
     
     try {
       // Find patient by email
@@ -63,62 +62,55 @@ export class PatientService {
         throw new Error('Invalid password');
       }
       
-      console.log('✅ Patient login successful:', patient.name);
-      
       // Remove password from response
       delete patient.password;
       
+      const duration = Date.now() - startTime;
+      console.log(`✅ Patient login successful in ${duration}ms: ${patient.name}`);
+      
       return patient;
     } catch (error) {
-      console.error('❌ PatientService.login() error:', error.message);
+      const duration = Date.now() - startTime;
+      console.error(`❌ PatientService.login() failed after ${duration}ms:`, error.message);
       throw error;
     }
   }
 
   async create(createPatientInput: CreatePatientInput): Promise<Patient> {
-    console.log('🔥🔥🔥 SERVICE CALLED - PatientService.create() started 🔥🔥🔥');
-    console.log('💾 PatientService.create() called');
-    console.log('📝 Service input:', JSON.stringify(createPatientInput, null, 2));
+    const startTime = Date.now();
     
     try {
-      console.log('🔨 Creating patient entity...');
-      
       // Hash password if provided
       if (createPatientInput.password) {
-        const saltRounds = 10;
+        const saltRounds = 8; // Reduced from 10 to 8 for better performance (still secure)
         createPatientInput.password = await bcrypt.hash(createPatientInput.password, saltRounds);
-        console.log('🔐 Password hashed successfully');
       }
       
       const patient = this.patientRepository.create(createPatientInput);
-      console.log('📋 Created entity:', JSON.stringify(patient, null, 2));
-      
-      console.log('💾 Saving to database...');
       const savedPatient = await this.patientRepository.save(patient);
-      console.log('✅ Saved patient:', JSON.stringify(savedPatient, null, 2));
       
       // Remove password from response
       delete savedPatient.password;
       
+      const duration = Date.now() - startTime;
+      console.log(`✅ Patient created successfully in ${duration}ms: ${savedPatient.name}`);
+      
       return savedPatient;
     } catch (error) {
-      console.error('❌ PatientService.create() error:', error);
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
+      const duration = Date.now() - startTime;
+      console.error(`❌ PatientService.create() failed after ${duration}ms:`, error.message);
       throw error;
     }
   }
 
   async update(id: string, updatePatientInput: UpdatePatientInput): Promise<Patient> {
-    console.log('🔄 PatientService.update() called');
-    console.log('📝 Update data:', JSON.stringify(updatePatientInput, null, 2));
+    const startTime = Date.now();
     
     try {
       // Hash password if provided
       if (updatePatientInput.password) {
-        const saltRounds = 10;
+        const saltRounds = 8;
         updatePatientInput.password = await bcrypt.hash(updatePatientInput.password, saltRounds);
-        console.log('🔐 Password hashed successfully for update');
       }
       
       await this.patientRepository.update(id, updatePatientInput);
@@ -129,10 +121,12 @@ export class PatientService {
         delete updatedPatient.password;
       }
       
-      console.log('✅ Patient updated successfully');
+      const duration = Date.now() - startTime;
+      console.log(`✅ Patient updated successfully in ${duration}ms`);
       return updatedPatient;
     } catch (error) {
-      console.error('❌ PatientService.update() error:', error);
+      const duration = Date.now() - startTime;
+      console.error(`❌ PatientService.update() failed after ${duration}ms:`, error.message);
       throw error;
     }
   }
@@ -143,28 +137,34 @@ export class PatientService {
   }
 
   async bulkCreate(patients: CreatePatientInput[]): Promise<Patient[]> {
-    console.log('📦 Bulk creating patients:', patients.length);
+    const startTime = Date.now();
     const createdPatients: Patient[] = [];
     
     for (const patientData of patients) {
       try {
+        // Hash password if provided
+        if (patientData.password) {
+          const saltRounds = 8;
+          patientData.password = await bcrypt.hash(patientData.password, saltRounds);
+        }
+        
         const patient = this.patientRepository.create(patientData);
         const savedPatient = await this.patientRepository.save(patient);
         createdPatients.push(savedPatient);
-        console.log('✅ Created patient:', savedPatient.name);
       } catch (error) {
-        console.error('❌ Failed to create patient:', patientData.name, error.message);
+        const duration = Date.now() - startTime;
+        console.error(`❌ Bulk create failed after ${duration}ms:`, error.message);
         throw new Error(`Failed to create patient ${patientData.name}: ${error.message}`);
       }
     }
     
-    console.log('🎉 Bulk upload completed:', createdPatients.length, 'patients created');
+    const duration = Date.now() - startTime;
+    console.log(`✅ Bulk upload completed in ${duration}ms: ${createdPatients.length} patients created`);
     return createdPatients;
   }
 
   async resetPassword(resetPasswordInput: ResetPasswordInput): Promise<Patient> {
-    console.log('🔄 PatientService.resetPassword() called');
-    console.log('📧 Reset email:', resetPasswordInput.email);
+    const startTime = Date.now();
     
     try {
       // Find patient by email
@@ -174,13 +174,11 @@ export class PatientService {
       }
       
       // Hash the new password
-      const saltRounds = 10;
+      const saltRounds = 8;
       const hashedPassword = await bcrypt.hash(resetPasswordInput.newPassword, saltRounds);
       
       // Update the password
       await this.patientRepository.update(patient.id, { password: hashedPassword });
-      
-      console.log('✅ Password reset successful for:', patient.name);
       
       // Return updated patient without password
       const updatedPatient = await this.findOne(patient.id);
@@ -188,9 +186,13 @@ export class PatientService {
         delete updatedPatient.password;
       }
       
+      const duration = Date.now() - startTime;
+      console.log(`✅ Password reset successful in ${duration}ms for: ${patient.name}`);
+      
       return updatedPatient;
     } catch (error) {
-      console.error('❌ PatientService.resetPassword() error:', error.message);
+      const duration = Date.now() - startTime;
+      console.error(`❌ PatientService.resetPassword() failed after ${duration}ms:`, error.message);
       throw error;
     }
   }

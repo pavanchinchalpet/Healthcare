@@ -9,20 +9,8 @@ export class PatientResolver {
   constructor(private readonly patientService: PatientService) {}
 
   @Query(() => [Patient], { name: 'getPatients' })
-  async findAll() {
-    console.log('🔍 PatientResolver.findAll() called');
-    const startTime = Date.now();
-    
-    try {
-      const patients = await this.patientService.findAll();
-      const duration = Date.now() - startTime;
-      console.log(`✅ PatientResolver.findAll() completed in ${duration}ms`);
-      return patients;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      console.error(`❌ PatientResolver.findAll() failed after ${duration}ms:`, error);
-      throw error;
-    }
+  findAll() {
+    return this.patientService.findAll();
   }
 
   @Query(() => Patient, { name: 'getPatientById' })
@@ -31,33 +19,13 @@ export class PatientResolver {
   }
 
   @Mutation(() => Patient, { name: 'patientLogin' })
-  async login(@Args('loginInput') loginInput: PatientLoginInput) {
-    console.log('🔐 PatientResolver.login() called');
-    console.log('📧 Login email:', loginInput.email);
-    
-    try {
-      const patient = await this.patientService.login(loginInput);
-      console.log('✅ PatientResolver.login() success');
-      return patient;
-    } catch (error) {
-      console.error('❌ PatientResolver.login() error:', error.message);
-      throw error;
-    }
+  login(@Args('loginInput') loginInput: PatientLoginInput) {
+    return this.patientService.login(loginInput);
   }
 
   @Mutation(() => Patient, { name: 'createPatient' })
   create(@Args('createPatientInput') createPatientInput: CreatePatientInput) {
-    console.log('🔥🔥🔥 RESOLVER CALLED - createPatient mutation started 🔥🔥🔥');
-    console.log('🚀 PatientResolver.create() called');
-    console.log('📝 Input data:', JSON.stringify(createPatientInput, null, 2));
-    try {
-      const result = this.patientService.create(createPatientInput);
-      console.log('✅ PatientResolver.create() success');
-      return result;
-    } catch (error) {
-      console.error('❌ PatientResolver.create() error:', error);
-      throw error;
-    }
+    return this.patientService.create(createPatientInput);
   }
 
   @Mutation(() => Patient, { name: 'updatePatient' })
@@ -71,23 +39,12 @@ export class PatientResolver {
   }
 
   @Mutation(() => [Patient], { name: 'bulkCreatePatients' })
-  async bulkCreate(@Args('patients', { type: () => [CreatePatientInput] }) patients: CreatePatientInput[]) {
-    console.log('🔥 Bulk upload started for patients:', patients.length);
+  bulkCreate(@Args('patients', { type: () => [CreatePatientInput] }) patients: CreatePatientInput[]) {
     return this.patientService.bulkCreate(patients);
   }
 
   @Mutation(() => Patient, { name: 'resetPatientPassword' })
-  async resetPassword(@Args('resetPasswordInput') resetPasswordInput: ResetPasswordInput) {
-    console.log('🔄 PatientResolver.resetPassword() called');
-    console.log('📧 Reset email:', resetPasswordInput.email);
-    
-    try {
-      const patient = await this.patientService.resetPassword(resetPasswordInput);
-      console.log('✅ PatientResolver.resetPassword() success');
-      return patient;
-    } catch (error) {
-      console.error('❌ PatientResolver.resetPassword() error:', error.message);
-      throw error;
-    }
+  resetPassword(@Args('resetPasswordInput') resetPasswordInput: ResetPasswordInput) {
+    return this.patientService.resetPassword(resetPasswordInput);
   }
 }

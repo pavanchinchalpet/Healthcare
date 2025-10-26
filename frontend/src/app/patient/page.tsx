@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation } from '@apollo/client'
-import { useState } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -13,8 +13,46 @@ import { CREATE_APPOINTMENT } from '@/graphql/mutations/appointments'
 import { queryOptions } from '@/lib/apollo-client'
 import { useAuth } from '@/lib/auth'
 
+// Memoized doctor card component for better performance
+const DoctorCard = memo(({ doctor, onBook }: any) => (
+  <Card key={doctor.id} className="hover:shadow-lg transition-shadow">
+    <CardHeader>
+      <CardTitle className="text-lg">{doctor.name}</CardTitle>
+      <CardDescription>{doctor.specialization || 'General Practice'}</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-2 text-sm text-gray-600">
+        {doctor.email && (
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {doctor.email}
+          </div>
+        )}
+        {doctor.phone && (
+          <div className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            </svg>
+            {doctor.phone}
+          </div>
+        )}
+      </div>
+      <Button 
+        className="w-full mt-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+        onClick={onBook}
+      >
+        Book Appointment
+      </Button>
+    </CardContent>
+  </Card>
+))
+
+DoctorCard.displayName = 'DoctorCard'
+
 export default function PatientHomePage() {
-  const { userId, displayName } = useAuth()
+  const { userId, role, displayName, logout } = useAuth()
   const [selectedDoctor, setSelectedDoctor] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
@@ -59,20 +97,80 @@ export default function PatientHomePage() {
 
   const doctors = doctorsData?.getDoctors || []
 
+  // Redirect staff members and unauthenticated users
+  useEffect(() => {
+    if (role && role !== 'patient') {
+      window.location.href = '/dashboard'
+    } else if (role === null) {
+      window.location.href = '/'
+    }
+  }, [role])
+
   return (
     <>
       {/* Patient Home Page */}
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
-          {/* Header */}
-          <section className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Welcome, <span className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">{displayName}</span>
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Browse available doctors and book your appointments easily.
-            </p>
-          </section>
+      <main className="min-h-screen bg-blue-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              {/* Logo */}
+              <div className="flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span className="font-semibold text-gray-800">HealthCare Pro</span>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex items-center gap-6">
+                <a href="/patient" className="flex items-center gap-1 text-blue-600 font-medium">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                  Dashboard
+                </a>
+                <a href="/patient/appointments" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  My Appointments
+                </a>
+                <a href="/patient/profile" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  My Profile
+                </a>
+              </nav>
+
+              {/* User & Logout */}
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-sm text-gray-800">{displayName || 'User'}</div>
+                  <div className="text-xs text-gray-600">Patient</div>
+                </div>
+                <button 
+                  onClick={logout}
+                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+                >
+                  <span>Logout</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Title Section */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">Patient Dashboard</h1>
+            <p className="text-gray-600">Welcome, {displayName}</p>
+          </div>
 
           {/* Quick Actions */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -114,8 +212,8 @@ export default function PatientHomePage() {
           </section>
 
           {/* Available Doctors */}
-          <section className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Available Doctors</h2>
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Available Doctors</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {doctorsLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
@@ -132,41 +230,14 @@ export default function PatientHomePage() {
                 ))
               ) : (
                 doctors.map((doctor: any) => (
-                  <Card key={doctor.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="text-lg">{doctor.name}</CardTitle>
-                      <CardDescription>{doctor.specialization || 'General Practice'}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm text-gray-600">
-                        {doctor.email && (
-                          <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                            </svg>
-                            {doctor.email}
-                          </div>
-                        )}
-                        {doctor.phone && (
-                          <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                            </svg>
-                            {doctor.phone}
-                          </div>
-                        )}
-                      </div>
-                      <Button 
-                        className="w-full mt-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-                        onClick={() => {
-                          setSelectedDoctor(doctor.id)
-                          setShowBookingForm(true)
-                        }}
-                      >
-                        Book Appointment
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <DoctorCard
+                    key={doctor.id}
+                    doctor={doctor}
+                    onBook={() => {
+                      setSelectedDoctor(doctor.id)
+                      setShowBookingForm(true)
+                    }}
+                  />
                 ))
               )}
             </div>
@@ -174,7 +245,7 @@ export default function PatientHomePage() {
 
           {/* Booking Form Modal */}
           {showBookingForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
               <Card className="max-w-md w-full mx-4 shadow-2xl">
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl font-bold text-gray-900">Book Appointment</CardTitle>
