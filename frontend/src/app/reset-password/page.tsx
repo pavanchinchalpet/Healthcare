@@ -70,10 +70,26 @@ export default function ResetPasswordPage() {
   return (
     <>
       {/* Password Reset Page */}
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center py-8">
         <div className="max-w-7xl mx-auto px-4 md:px-6 w-full">
           <section className="text-center">
             <div className="max-w-2xl mx-auto">
+              {/* Back Button */}
+              <div className="mb-6 flex justify-start">
+                <Button 
+                  asChild 
+                  variant="ghost" 
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  <a href="/login">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Login
+                  </a>
+                </Button>
+              </div>
+
               <div className="mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
                   <span className="bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">

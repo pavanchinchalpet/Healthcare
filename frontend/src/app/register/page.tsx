@@ -1,18 +1,15 @@
 'use client'
 
 import { useMutation } from '@apollo/client'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { useState, useEffect } from 'react'
+import { CREATE_PATIENT } from '@/graphql/mutations/patients'
+import { useAuth } from '@/lib/auth'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CREATE_PATIENT } from '@/graphql/mutations/patients'
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/auth'
 
 export default function RegisterPage() {
-  const { login } = useAuth()
+  const { login, role: currentRole } = useAuth()
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
@@ -26,6 +23,17 @@ export default function RegisterPage() {
     setIsClient(true)
   }, [])
 
+  // Redirect already logged-in users
+  useEffect(() => {
+    if (isClient) {
+      if (currentRole === 'patient') {
+        window.location.href = '/patient'
+      } else if (currentRole === 'admin' || currentRole === 'doctor' || currentRole === 'staff') {
+        window.location.href = '/dashboard'
+      }
+    }
+  }, [isClient, currentRole])
+
   const [createPatient, { loading }] = useMutation(CREATE_PATIENT, {
     onCompleted: (data) => {
       const p = data?.createPatient
@@ -34,7 +42,10 @@ export default function RegisterPage() {
         window.location.href = '/patient'
       }
     },
-    onError: (e) => alert(e.message),
+    onError: (e) => {
+      console.error('Registration error:', e)
+      alert(e.message)
+    },
   })
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -54,153 +65,176 @@ export default function RegisterPage() {
     })
   }
 
-  if (!isClient) {
+  if (!isClient || currentRole) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full text-center">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
-          </div>
-        </div>
-      </main>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-white"></main>
     )
   }
 
   return (
     <>
-      {/* Patient Registration Page */}
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full">
-          <section className="text-center">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
-                  <span className="bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">
-                    Patient Registration
-                  </span>
-                </h1>
-              </div>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-white">
+        {/* Header with Logo - Clickable to Home */}
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span className="font-semibold text-gray-800">HealthCare Pro</span>
+          </a>
+        </div>
 
-              <Card className="max-w-xl mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-                <CardHeader className="text-center pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-600 to-green-700 text-white flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
+        {/* Register Card */}
+        <div className="flex items-center justify-center pt-4 pb-4">
+          <div className="w-full max-w-2xl px-6">
+            <div className="bg-white rounded-2xl p-6 shadow-lg">
+              {/* Title */}
+              <h1 className="text-xl font-bold text-gray-900 text-center mb-1">
+                Patient Registration
+              </h1>
+
+              {/* Description */}
+              <p className="text-sm text-gray-600 text-center mb-4">
+                Fill your basic details to create your account.
+              </p>
+
+              {/* Form */}
+              <form onSubmit={onSubmit} className="space-y-3">
+                {/* Row 1: Name and Age */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                      Name *
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Enter your full name"
+                    />
                   </div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">Register</CardTitle>
-                  <CardDescription className="text-gray-600">Fill your basic details</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-4" onSubmit={onSubmit}>
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium text-gray-700 text-left block">Name</Label>
-                      <Input 
-                        id="name" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
-                        required 
-                        className="h-10 text-base"
-                        placeholder="Enter your full name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="age" className="text-sm font-medium text-gray-700 text-left block">Age</Label>
-                      <Input 
-                        id="age" 
-                        type="number"
-                        value={age} 
-                        onChange={(e) => setAge(e.target.value)} 
-                        className="h-10 text-base"
-                        placeholder="Enter your age"
-                        min="1"
-                        max="150"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="gender" className="text-sm font-medium text-gray-700 text-left block">Gender</Label>
-                      <Select value={gender} onValueChange={setGender}>
-                        <SelectTrigger className="h-10 text-base">
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Male">Male</SelectItem>
-                          <SelectItem value="Female">Female</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700 text-left block">Email</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        className="h-10 text-base"
-                        placeholder="Enter your email"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-sm font-medium text-gray-700 text-left block">Phone</Label>
-                      <Input 
-                        id="phone" 
-                        value={phone} 
-                        onChange={(e) => setPhone(e.target.value)} 
-                        className="h-10 text-base"
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address" className="text-sm font-medium text-gray-700 text-left block">Address</Label>
-                      <Textarea 
-                        id="address" 
-                        rows={2} 
-                        value={address} 
-                        onChange={(e) => setAddress(e.target.value)} 
-                        className="text-base resize-none"
-                        placeholder="Enter your address"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium text-gray-700 text-left block">Password</Label>
-                      <Input 
-                        id="password" 
-                        type="password" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                        className="h-10 text-base"
-                        placeholder="Enter your password"
-                      />
-                    </div>
-                    <div className="flex gap-3 pt-2">
-                      <Button 
-                        type="submit" 
-                        disabled={loading} 
-                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white h-10 text-base font-medium"
-                      >
-                        {loading ? 'Registering...' : 'Register'}
-                      </Button>
-                      <Button 
-                        asChild 
-                        variant="outline" 
-                        className="border-2 border-gray-300 hover:bg-gray-50 h-10 px-6"
-                      >
-                        <a href="/login">Login</a>
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
+
+                  <div>
+                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
+                      Age
+                    </label>
+                    <input
+                      id="age"
+                      type="number"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Enter your age"
+                      min="1"
+                      max="150"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: Gender and Phone */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                      Gender
+                    </label>
+                    <select
+                      id="gender"
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone
+                    </label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Enter your phone"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Email - Full Width */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="Enter your email"
+                  />
+                </div>
+
+                {/* Row 4: Address - Full Width */}
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                    Address
+                  </label>
+                  <textarea
+                    id="address"
+                    rows={2}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    placeholder="Enter your address"
+                  />
+                </div>
+
+                {/* Row 5: Password - Full Width */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password *
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="Enter your password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 mt-4 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Registering...' : 'Register'}
+                </button>
+              </form>
+
+              {/* Login Link */}
+              <div className="mt-4 text-center text-sm text-gray-600">
+                Already have an account?{' '}
+                <a href="/login" className="text-green-600 hover:text-green-800 font-medium">
+                  Login here
+                </a>
+              </div>
             </div>
-          </section>
+          </div>
         </div>
       </main>
     </>
   )
 }
-
-

@@ -4,16 +4,9 @@ import { useQuery, useMutation } from '@apollo/client'
 import { GET_APPOINTMENTS_LIGHT, GET_PATIENTS_LIGHT, GET_DOCTORS_LIGHT } from '@/graphql/queries/appointments-optimized'
 import { CREATE_APPOINTMENT, UPDATE_APPOINTMENT, DELETE_APPOINTMENT } from '@/graphql/mutations/appointments'
 import { queryOptions } from '@/lib/apollo-client'
-import { useState, useMemo } from 'react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import HeaderNav from "@/components/healthcare/header-nav"
+import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '@/lib/auth'
 import { AppointmentsSkeleton } from "@/components/appointments/appointments-skeleton"
-import { formatDate, formatTime, formatDateTime } from '@/lib/utils'
 
 interface Appointment {
   id: string
@@ -27,42 +20,17 @@ interface Appointment {
   patient: {
     id: string
     name: string
-    age?: number
-    gender?: string
-    email?: string
-    phone?: string
   }
   doctor: {
     id: string
     name: string
     specialization?: string
-    email?: string
-    phone?: string
   }
 }
 
 export default function AppointmentsPage() {
-  // Optimized query with better performance
-  const { loading: appointmentsLoading, error: appointmentsError, data: appointmentsData } = useQuery(GET_APPOINTMENTS_LIGHT, {
-    ...queryOptions.appointments,
-    fetchPolicy: 'cache-first',
-    errorPolicy: 'all',
-    notifyOnNetworkStatusChange: false, // Reduce re-renders
-  })
-  
-  const { loading: patientsLoading, error: patientsError, data: patientsData } = useQuery(GET_PATIENTS_LIGHT, {
-    ...queryOptions.patients,
-    fetchPolicy: 'cache-first',
-    errorPolicy: 'all',
-    notifyOnNetworkStatusChange: false,
-  })
-  
-  const { loading: doctorsLoading, error: doctorsError, data: doctorsData } = useQuery(GET_DOCTORS_LIGHT, {
-    ...queryOptions.doctors,
-    fetchPolicy: 'cache-first',
-    errorPolicy: 'all',
-    notifyOnNetworkStatusChange: false,
-  })
+  const { role, displayName, logout } = useAuth()
+  const [filter, setFilter] = useState('All')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
@@ -73,125 +41,113 @@ export default function AppointmentsPage() {
   const [status, setStatus] = useState('Scheduled')
   const [reason, setReason] = useState('')
 
-  // Memoized loading state
-  const isLoading = useMemo(() => 
-    appointmentsLoading || patientsLoading || doctorsLoading, 
-    [appointmentsLoading, patientsLoading, doctorsLoading]
-  )
+  const { loading, error, data } = useQuery(GET_APPOINTMENTS_LIGHT, {
+    ...queryOptions.appointments,
+    fetchPolicy: 'cache-first',
+    errorPolicy: 'all',
+  })
 
-  // Memoized error state
-  const hasError = useMemo(() => 
-    appointmentsError || patientsError || doctorsError,
-    [appointmentsError, patientsError, doctorsError]
-  )
+  const { data: patientsData } = useQuery(GET_PATIENTS_LIGHT, {
+    ...queryOptions.patients,
+    fetchPolicy: 'cache-first',
+  })
+
+  const { data: doctorsData } = useQuery(GET_DOCTORS_LIGHT, {
+    ...queryOptions.doctors,
+    fetchPolicy: 'cache-first',
+  })
+
+  const appointments = useMemo(() => data?.getAppointments || [], [data])
+  const patients = useMemo(() => patientsData?.getPatients || [], [patientsData])
+  const doctors = useMemo(() => doctorsData?.getDoctors || [], [doctorsData])
+
+  const filteredAppointments = useMemo(() => {
+    if (filter === 'All') return appointments
+    return appointments.filter((apt: Appointment) => apt.status?.toLowerCase() === filter.toLowerCase())
+  }, [appointments, filter])
 
   const [createAppointment, { loading: creating }] = useMutation(CREATE_APPOINTMENT, {
     refetchQueries: [{ query: GET_APPOINTMENTS_LIGHT }],
-    awaitRefetchQueries: true,
-    onError: (error) => {
-      console.error('❌ Error creating appointment:', error)
-      alert(`Error: ${error.message}`)
-    },
     onCompleted: () => {
-      alert('Appointment scheduled successfully!')
-    }
+      alert('Appointment created successfully!')
+      handleCancel()
+    },
   })
 
   const [updateAppointment, { loading: updating }] = useMutation(UPDATE_APPOINTMENT, {
     refetchQueries: [{ query: GET_APPOINTMENTS_LIGHT }],
-    awaitRefetchQueries: true,
-    onError: (error) => {
-      console.error('❌ Error updating appointment:', error)
-      alert(`Error: ${error.message}`)
-    },
-    onCompleted: (data) => {
-      console.log('✅ Appointment updated successfully:', data)
+    onCompleted: () => {
       alert('Appointment updated successfully!')
-    }
+      handleCancel()
+    },
   })
 
-  const [deleteAppointment, { loading: deleting }] = useMutation(DELETE_APPOINTMENT, {
+  const [deleteAppointment] = useMutation(DELETE_APPOINTMENT, {
     refetchQueries: [{ query: GET_APPOINTMENTS_LIGHT }],
-    awaitRefetchQueries: true,
-    onError: (error) => {
-      console.error('❌ Error deleting appointment:', error)
-      alert(`Error: ${error.message}`)
-    },
-    onCompleted: (data) => {
-      console.log('✅ Appointment deleted successfully:', data)
+    onCompleted: () => {
       alert('Appointment deleted successfully!')
-    }
+    },
   })
+
+  // Redirect non-staff users
+  useEffect(() => {
+    if (role === 'patient') {
+      window.location.href = '/patient'
+    } else if (role === null) {
+      window.location.href = '/'
+    }
+  }, [role])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate required fields
     if (!patientId || !doctorId || !date || !time) {
-      alert('Please fill in all required fields (Patient, Doctor, Date, and Time)')
+      alert('Please fill in all required fields!')
       return
     }
     
     const createAppointmentInput: any = {
-      patientId,
-      doctorId,
-      date,
-      time,
-    }
-    if (status) createAppointmentInput.status = status
-    if (reason) createAppointmentInput.reason = reason
-
-    try {
-      if (editingAppointment) {
-        const updateAppointmentInput = {
-          id: editingAppointment.id,
-          ...createAppointmentInput
-        }
-        console.log('📝 Updating appointment with:', JSON.stringify(updateAppointmentInput, null, 2))
-        await updateAppointment({ variables: { updateAppointmentInput } })
-        console.log('✅ Appointment update successful')
-      } else {
-        console.log('📝 Creating new appointment with:', JSON.stringify(createAppointmentInput, null, 2))
-        await createAppointment({ variables: { createAppointmentInput } })
-        console.log('✅ Appointment creation successful')
-      }
-    } catch (error) {
-      console.error('❌ Form submission error:', error)
-      console.error('❌ Error details:', (error as Error).message)
+      patientId: patientId.trim(),
+      doctorId: doctorId.trim(),
+      date: date.trim(),
+      time: time.trim(),
+      status: status || 'Scheduled',
     }
     
-    setPatientId('')
-    setDoctorId('')
-    setDate('')
-    setTime('')
-    setStatus('Scheduled')
-    setReason('')
-    setShowAddForm(false)
-    setEditingAppointment(null)
+    if (reason) createAppointmentInput.reason = reason.trim()
+
+    if (editingAppointment) {
+      await updateAppointment({ variables: { updateAppointmentInput: { id: editingAppointment.id, ...createAppointmentInput } } })
+    } else {
+      await createAppointment({ variables: { createAppointmentInput } })
+    }
   }
 
   const handleEdit = (appointment: Appointment) => {
-    console.log('✏️ Editing appointment:', appointment)
     setEditingAppointment(appointment)
     setPatientId(appointment.patientId)
     setDoctorId(appointment.doctorId)
-    setDate(appointment.date || '')
-    setTime(appointment.time || '')
+    setDate(appointment.date)
+    setTime(appointment.time)
     setStatus(appointment.status || 'Scheduled')
     setReason(appointment.reason || '')
     setShowAddForm(true)
   }
 
   const handleDelete = async (appointmentId: string) => {
-    console.log('🗑️ Deleting appointment with id:', appointmentId)
     if (confirm('Are you sure you want to delete this appointment?')) {
-      try {
-        await deleteAppointment({ variables: { id: appointmentId } })
-        console.log('✅ Appointment deletion successful')
-      } catch (error) {
-        console.error('❌ Delete error:', error)
-      }
+      await deleteAppointment({ variables: { id: appointmentId } })
     }
+  }
+
+  const handleCancelAppointment = async (appointment: Appointment) => {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+      await updateAppointment({ variables: { updateAppointmentInput: { id: appointment.id, status: 'Cancelled' } } })
+    }
+  }
+
+  const handleComplete = async (appointment: Appointment) => {
+    await updateAppointment({ variables: { updateAppointmentInput: { id: appointment.id, status: 'Completed' } } })
   }
 
   const handleCancel = () => {
@@ -205,364 +161,325 @@ export default function AppointmentsPage() {
     setReason('')
   }
 
-  // Show skeleton loading state
-  if (isLoading) {
-    return (
-      <>
-        <HeaderNav />
-        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-          <AppointmentsSkeleton />
-        </main>
-      </>
-    )
+  const formatDate = (dateString: string) => {
+    return dateString
   }
-  
-  // Show error state
-  if (hasError) {
-    const errorMessage = appointmentsError?.message || patientsError?.message || doctorsError?.message || 'Unknown error'
+
+  const formatTime = (timeString: string) => {
+    return timeString
+  }
+
+  if (loading) {
+    return <AppointmentsSkeleton />
+  }
+
+  if (error) {
     return (
-      <>
-        <HeaderNav />
-        <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-          <div className="text-center text-destructive">Error: {errorMessage}</div>
-        </main>
-      </>
+      <main className="min-h-screen bg-blue-50">
+        <div className="p-6 text-center text-red-600">Error: {error.message}</div>
+      </main>
     )
   }
 
   return (
-    <>
-      <HeaderNav />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <section aria-labelledby="appointments-title" className="mb-6 md:mb-8">
-          <h1 id="appointments-title" className="text-3xl md:text-4xl font-semibold text-pretty">
-            Appointments
-          </h1>
-          <p className="mt-3 text-muted-foreground leading-relaxed">Schedule and track appointments.</p>
-        </section>
-
-        <section aria-label="Appointment management" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-1 bg-purple-600 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-gray-800">Appointment Scheduling</h2>
+    <main className="min-h-screen bg-blue-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <a href="/" className="flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span className="font-semibold text-gray-800">HealthCare Pro</span>
+              </a>
             </div>
-            <Button
-              onClick={() => setShowAddForm(!showAddForm)}
-              variant={showAddForm ? "outline" : "default"}
-              className={showAddForm ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-purple-600 hover:bg-purple-700 text-white"}
-            >
-              {showAddForm ? (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Cancel
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Schedule New Appointment
-                </>
-              )}
-            </Button>
-          </div>
 
-        {showAddForm && (
-          <Card className="border-l-4 border-l-purple-500 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-violet-50">
-              <CardTitle className="flex items-center gap-2 text-purple-900">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Navigation */}
+            <nav className="flex items-center gap-6">
+              <a href="/dashboard" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                Dashboard
+              </a>
+              <a href="/doctors" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Doctors
+              </a>
+              <a href="/patients" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Patients
+              </a>
+              <a href="/appointments" className="flex items-center gap-1 text-blue-600 font-medium bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {editingAppointment ? 'Edit Appointment Details' : 'Schedule New Appointment'}
-              </CardTitle>
-              <CardDescription className="text-purple-700">
-                {editingAppointment ? 'Update appointment scheduling and medical consultation details' : 'Enter comprehensive appointment information for medical consultation'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={onSubmit}>
-                <div className="space-y-2">
-                  <Label htmlFor="patient">Patient</Label>
-                  <Select value={patientId} onValueChange={setPatientId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Patient" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsData?.getPatients?.map((patient: any) => (
-                        <SelectItem key={patient.id} value={patient.id}>
-                          {patient.name} {patient.age ? `(${patient.age})` : ''}
-                        </SelectItem>
+                Appointments
+              </a>
+            </nav>
+
+            {/* User & Logout */}
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-sm text-gray-800">{displayName || 'User'}</div>
+                <div className="text-xs text-gray-600">{role?.charAt(0).toUpperCase()}{role?.slice(1)}</div>
+              </div>
+              <button 
+                onClick={logout}
+                className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+              >
+                <span>Logout</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Title Section */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-blue-600 mb-1">Appointment Management</h1>
+          <p className="text-gray-600">Schedule and manage patient appointments</p>
+        </div>
+
+        {/* Filter Tabs and Add Button */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-2">
+            {['All', 'Scheduled', 'Completed', 'Cancelled'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filter === tab
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            New Appointment
+          </button>
+        </div>
+
+        {/* Add/Edit Form Modal */}
+        {showAddForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{editingAppointment ? 'Edit Appointment' : 'New Appointment'}</h2>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Patient *</label>
+                    <select
+                      value={patientId}
+                      onChange={(e) => setPatientId(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Select patient</option>
+                      {patients.map((patient: any) => (
+                        <option key={patient.id} value={patient.id}>{patient.name}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="doctor">Doctor</Label>
-                  <Select value={doctorId} onValueChange={setDoctorId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Doctor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctorsData?.getDoctors?.map((doctor: any) => (
-                        <SelectItem key={doctor.id} value={doctor.id}>
-                          Dr. {doctor.name} {doctor.specialization ? `(${doctor.specialization})` : ''}
-                        </SelectItem>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Doctor *</label>
+                    <select
+                      value={doctorId}
+                      onChange={(e) => setDoctorId(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Select doctor</option>
+                      {doctors.map((doctor: any) => (
+                        <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Appointment Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value)}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="time">Appointment Time</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={time}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTime(e.target.value)}
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      <SelectItem value="Rescheduled">Rescheduled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="reason">Reason</Label>
-                  <Textarea
-                    id="reason"
-                    rows={3}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                  <textarea
                     value={reason}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
-                    placeholder="Enter appointment reason"
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
                   />
                 </div>
-                <div className="md:col-span-2 flex gap-3 pt-4">
-                  <Button
+                <div className="flex gap-3 pt-2">
+                  <button
                     type="submit"
-                    disabled={creating || updating || !patientId.trim() || !doctorId.trim() || !date}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6"
+                    disabled={creating || updating}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    {creating || updating ? (
-                      <>
-                        <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Saving...
-                      </>
-                    ) : editingAppointment ? (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Update Appointment
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Schedule Appointment
-                      </>
-                    )}
-                  </Button>
-                  <Button
+                    {creating ? 'Creating...' : updating ? 'Updating...' : 'Save'}
+                  </button>
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={handleCancel}
-                    className="border-gray-300 hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-purple-50">
-            <CardTitle className="flex items-center gap-3 text-gray-800">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              Appointment Schedule
-              <span className="ml-auto text-sm font-normal text-gray-500">
-                {appointmentsData?.getAppointments?.length || 0} appointments
-              </span>
-            </CardTitle>
-            <CardDescription className="text-gray-600">Complete appointment calendar with patient and doctor information</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr className="border-b">
-                    <th className="text-left p-4 font-semibold text-gray-700">Patient</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Doctor</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Date & Time</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Status</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Reason</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Scheduled</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appointmentsData?.getAppointments?.map((appointment: Appointment) => (
-                    <tr key={appointment.id} className="border-b hover:bg-purple-50/50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-600 font-semibold text-sm">
-                              {appointment.patient.name?.charAt(0)?.toUpperCase() || '?'}
-                            </span>
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900">{appointment.patient.name}</div>
-                            <div className="text-sm text-gray-500">
-                              {appointment.patient.age ? `${appointment.patient.age} years` : 'Age not specified'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                            <span className="text-green-600 font-semibold text-sm">
-                              {appointment.doctor.name?.charAt(0)?.toUpperCase() || '?'}
-                            </span>
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900">Dr. {appointment.doctor.name}</div>
-                            <div className="text-sm text-gray-500">{appointment.doctor.specialization || 'General'}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm">
-                          <div className="font-semibold text-gray-900">
-                            {formatDate(appointment.date)}
-                          </div>
-                          <div className="text-gray-500">
-                            {formatTime(appointment.time)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          appointment.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' :
-                          appointment.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                          appointment.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                          appointment.status === 'Rescheduled' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {appointment.status || 'Scheduled'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600 max-w-xs truncate">
-                        {appointment.reason || 'No reason provided'}
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm text-gray-600">
-                          {formatDate(appointment.createdAt)}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(appointment)}
-                            disabled={deleting}
-                            className="border-purple-200 text-purple-600 hover:bg-purple-50"
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(appointment.id)}
-                            disabled={deleting}
-                            className="bg-red-100 text-red-600 hover:bg-red-200 border-red-200"
-                          >
-                            {deleting ? (
-                              <>
-                                <svg className="w-4 h-4 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Deleting...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Delete
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
-          </CardContent>
-        </Card>
-
-        {appointmentsData?.getAppointments?.length === 0 && (
-          <Card className="border-dashed border-2 border-gray-200">
-            <CardContent className="text-center py-16">
-              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Appointments Found</h3>
-              <p className="text-gray-500 mb-6">Start scheduling appointments by creating your first appointment.</p>
-              <Button 
-                onClick={() => setShowAddForm(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Schedule First Appointment
-              </Button>
-            </CardContent>
-          </Card>
+          </div>
         )}
-        </section>
-      </main>
-    </>
+
+        {/* Appointment Cards */}
+        <div className="space-y-4">
+          {filteredAppointments.map((appointment: Appointment) => (
+            <div key={appointment.id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-start gap-4">
+                {/* Icon */}
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+
+                {/* Appointment Details */}
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{appointment.reason || 'Appointment'}</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {appointment.patient?.name} • Dr. {appointment.doctor?.name}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span>{formatDate(appointment.date)}</span>
+                    <span>{formatTime(appointment.time)}</span>
+                  </div>
+
+                  {/* Action Buttons - Only for Scheduled */}
+                  {appointment.status === 'Scheduled' && (
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() => handleComplete(appointment)}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                      >
+                        Complete
+                      </button>
+                      <button
+                        onClick={() => handleCancelAppointment(appointment)}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Status and Edit/Delete */}
+                <div className="flex flex-col items-end gap-3">
+                  {/* Status Badge */}
+                  <div className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1 ${
+                    appointment.status === 'Completed' 
+                      ? 'bg-green-100 text-green-700' 
+                      : appointment.status === 'Cancelled'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {appointment.status === 'Completed' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {appointment.status === 'Scheduled' && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    )}
+                    {appointment.status}
+                  </div>
+
+                  {/* Edit & Delete Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(appointment)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(appointment.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredAppointments.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+            <p className="text-gray-500">No appointments found</p>
+          </div>
+        )}
+      </div>
+    </main>
   )
 }

@@ -12,7 +12,7 @@ import { UPDATE_PATIENT } from '@/graphql/mutations/patients'
 import { useAuth } from '@/lib/auth'
 
 export default function PatientProfilePage() {
-  const { userId, displayName } = useAuth()
+  const { userId, role, displayName, logout } = useAuth()
   const [isClient, setIsClient] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState('')
@@ -43,6 +43,15 @@ export default function PatientProfilePage() {
       setAddress(currentPatient.address || '')
     }
   }, [currentPatient])
+
+  // Redirect staff members and unauthenticated users
+  useEffect(() => {
+    if (role && role !== 'patient') {
+      window.location.href = '/dashboard'
+    } else if (role === null) {
+      window.location.href = '/'
+    }
+  }, [role])
 
   const [updatePatient, { loading: updating }] = useMutation(UPDATE_PATIENT, {
     onCompleted: () => {
@@ -106,7 +115,7 @@ export default function PatientProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+      <main className="min-h-screen bg-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading profile...</p>
@@ -117,7 +126,7 @@ export default function PatientProfilePage() {
 
   if (!currentPatient) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+      <main className="min-h-screen bg-blue-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
           <p className="text-gray-600 mb-6">Unable to load your profile information.</p>
@@ -132,35 +141,71 @@ export default function PatientProfilePage() {
   return (
     <>
       {/* Patient Profile Page */}
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
-          {/* Header */}
-          <section className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              My <span className="bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">Profile</span>
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Manage your personal information and account settings.
-            </p>
-          </section>
+      <main className="min-h-screen bg-blue-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              {/* Logo */}
+              <div className="flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span className="font-semibold text-gray-800">HealthCare Pro</span>
+              </div>
 
-          {/* Quick Actions */}
-          <section className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-12 max-w-md mx-auto">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/patient/appointments'}>
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              {/* Navigation */}
+              <nav className="flex items-center gap-6">
+                <a href="/patient" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                   </svg>
+                  Dashboard
+                </a>
+                <a href="/patient/appointments" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  My Appointments
+                </a>
+                <a href="/patient/profile" className="flex items-center gap-1 text-blue-600 font-medium">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  My Profile
+                </a>
+              </nav>
+
+              {/* User & Logout */}
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-sm text-gray-800">{displayName || 'User'}</div>
+                  <div className="text-xs text-gray-600">Patient</div>
                 </div>
-                <CardTitle className="text-xl">My Appointments</CardTitle>
-                <CardDescription>View and manage your appointments</CardDescription>
-              </CardHeader>
-            </Card>
-          </section>
+                <button 
+                  onClick={logout}
+                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+                >
+                  <span>Logout</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          {/* Title Section */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">My Profile</h1>
+            <p className="text-gray-600">Manage your personal information and account settings</p>
+          </div>
 
           {/* Profile Information */}
-          <Card className="shadow-lg">
+          <Card className="shadow-sm border border-gray-100">
             <CardHeader className="text-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-purple-700 text-white flex items-center justify-center mx-auto mb-4">
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">

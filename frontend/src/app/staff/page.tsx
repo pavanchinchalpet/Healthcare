@@ -1,10 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/lib/auth'
 import { validateAccessCode, type AccessCodeRole } from '@/config/access-codes'
 import { useState, useEffect } from 'react'
@@ -12,7 +7,7 @@ import { useState, useEffect } from 'react'
 type UserRole = 'patient' | 'doctor' | 'admin' | 'staff' | null
 
 export default function StaffAccessPage() {
-  const { login } = useAuth()
+  const { login, role: currentRole } = useAuth()
   const [code, setCode] = useState('')
   const [role, setRole] = useState<'doctor' | 'admin' | 'staff'>('admin')
   const [isClient, setIsClient] = useState(false)
@@ -21,118 +16,109 @@ export default function StaffAccessPage() {
     setIsClient(true)
   }, [])
 
+  // Redirect already logged-in staff
+  useEffect(() => {
+    if (isClient) {
+      if (currentRole === 'admin' || currentRole === 'doctor' || currentRole === 'staff') {
+        window.location.href = '/dashboard'
+      } else if (currentRole === 'patient') {
+        window.location.href = '/patient'
+      }
+    }
+  }, [isClient, currentRole])
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('🔍 Access Code Debug:', {
-      entered: code.trim(),
-      role,
-      isValid: validateAccessCode(code, role.toUpperCase() as AccessCodeRole)
-    })
-    
     if (validateAccessCode(code, role.toUpperCase() as AccessCodeRole)) {
-      console.log('Access code correct, logging in...')
       login({ 
         role: role as UserRole, 
         userId: role, 
         displayName: role === 'admin' ? 'Admin' : role === 'doctor' ? 'Doctor' : 'Staff' 
       })
-      console.log('Login called, redirecting to dashboard...')
       window.location.href = '/dashboard'
     } else {
       alert('Invalid access code')
     }
   }
 
-  if (!isClient) {
+  if (!isClient || currentRole) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full text-center">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
-          </div>
-        </div>
-      </main>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-white"></main>
     )
   }
 
   return (
     <>
-      {/* Staff Access Page */}
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full">
-          <section className="text-center">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
-                  <span className="bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
-                    Staff Access
-                  </span>
-                </h1>
-              </div>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-white">
+        {/* Header with Logo - Clickable to Home */}
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span className="font-semibold text-gray-800">HealthCare Pro</span>
+          </a>
+        </div>
 
-              <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-                <CardHeader className="text-center pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">Enter Access Code</CardTitle>
-                  <CardDescription className="text-gray-600">Use the code provided by management</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-6" onSubmit={onSubmit}>
-                    <div className="space-y-2">
-                      <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
-                      <Select value={role} onValueChange={(value: 'doctor' | 'admin' | 'staff') => setRole(value)}>
-                        <SelectTrigger className="h-12 text-lg">
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="doctor">Doctor</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="code" className="text-sm font-medium text-gray-700">Access Code</Label>
-                      <Input 
-                        id="code" 
-                        type="password" 
-                        value={code} 
-                        onChange={(e) => setCode(e.target.value)} 
-                        required 
-                        className="h-12 text-center text-lg font-mono tracking-wider"
-                        placeholder="Enter code"
-                      />
-                    </div>
-                    <div className="flex gap-3 pt-4">
-                      <Button 
-                        type="submit" 
-                        className="flex-1 bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white h-12 text-lg font-medium"
-                      >
-                        Unlock
-                      </Button>
-                      <Button 
-                        asChild 
-                        variant="outline" 
-                        className="border-2 border-gray-300 hover:bg-gray-50 h-12 px-6"
-                      >
-                        <a href="/">Back</a>
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
+        {/* Staff Access Card */}
+        <div className="flex items-center justify-center pt-12 pb-4">
+          <div className="w-full max-w-md px-6">
+            <div className="bg-white rounded-2xl p-8 shadow-lg">
+              {/* Title */}
+              <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
+                Staff Access
+              </h1>
+
+              {/* Description */}
+              <p className="text-gray-600 text-center mb-8">
+                Enter your role and access code to continue.
+              </p>
+
+              {/* Form */}
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                    Role
+                  </label>
+                  <select
+                    id="role"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as 'doctor' | 'admin' | 'staff')}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="staff">Staff</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+                    Access Code
+                  </label>
+                  <input
+                    id="code"
+                    type="password"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-mono tracking-wider"
+                    placeholder="Enter access code"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Unlock Access
+                </button>
+              </form>
             </div>
-          </section>
+          </div>
         </div>
       </main>
     </>
   )
 }
-
-

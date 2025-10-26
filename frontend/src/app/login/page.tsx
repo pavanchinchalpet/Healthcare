@@ -2,15 +2,11 @@
 
 import { useMutation } from '@apollo/client'
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { PATIENT_LOGIN } from '@/graphql/mutations/patients'
 import { useAuth } from '@/lib/auth'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, role: currentRole } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isClient, setIsClient] = useState(false)
@@ -18,6 +14,17 @@ export default function LoginPage() {
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Redirect already logged-in users
+  useEffect(() => {
+    if (isClient) {
+      if (currentRole === 'patient') {
+        window.location.href = '/patient'
+      } else if (currentRole === 'admin' || currentRole === 'doctor' || currentRole === 'staff') {
+        window.location.href = '/dashboard'
+      }
+    }
+  }, [isClient, currentRole])
 
   const [patientLogin, { loading }] = useMutation(PATIENT_LOGIN, {
     onCompleted: (data) => {
@@ -44,103 +51,98 @@ export default function LoginPage() {
     })
   }
 
-  if (!isClient) {
+  if (!isClient || currentRole) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full text-center">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
-          </div>
-        </div>
-      </main>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-white"></main>
     )
   }
 
   return (
     <>
-      {/* Patient Login Page */}
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 w-full">
-          <section className="text-center">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
-                  <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                    Patient Login
-                  </span>
-                </h1>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-white">
+        {/* Header with Logo - Clickable to Home */}
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span className="font-semibold text-gray-800">HealthCare Pro</span>
+          </a>
+        </div>
+
+        {/* Login Card */}
+        <div className="flex items-center justify-center pt-4 pb-4">
+          <div className="w-full max-w-md px-6">
+            <div className="bg-white rounded-2xl p-8 shadow-lg">
+              {/* Icon */}
+              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
               </div>
 
-              <Card className="max-w-md mx-auto shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-                <CardHeader className="text-center pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                  </div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">Sign In</CardTitle>
-                  <CardDescription className="text-gray-600">Enter your email and password</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-4" onSubmit={onSubmit}>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700 text-left block">Email</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        required 
-                        className="h-10 text-base"
-                        placeholder="Enter your email"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium text-gray-700 text-left block">Password</Label>
-                      <Input 
-                        id="password" 
-                        type="password" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                        className="h-10 text-base"
-                        placeholder="Enter your password"
-                      />
-                    </div>
-                    <div className="flex gap-3 pt-2">
-                      <Button 
-                        type="submit" 
-                        disabled={loading} 
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-10 text-base font-medium"
-                      >
-                        {loading ? 'Logging in...' : 'Login'}
-                      </Button>
-                      <Button 
-                        asChild 
-                        variant="outline" 
-                        className="border-2 border-gray-300 hover:bg-gray-50 h-10 px-6"
-                      >
-                        <a href="/register">Register</a>
-                      </Button>
-                    </div>
-                    <div className="text-center pt-2">
-                      <a 
-                        href="/reset-password" 
-                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        Forgot your password? Reset it here
-                      </a>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
+              {/* Title */}
+              <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
+                Patient Login
+              </h1>
+
+              {/* Description */}
+              <p className="text-gray-600 text-center mb-8">
+                Sign in to manage your appointments.
+              </p>
+
+              {/* Form */}
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your email"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+              </form>
+
+              {/* Register Link */}
+              <div className="mt-6 text-center text-sm text-gray-600">
+                Don't have an account?{' '}
+                <a href="/register" className="text-blue-600 hover:text-blue-800 font-medium">
+                  Register here
+                </a>
+              </div>
             </div>
-          </section>
+          </div>
         </div>
       </main>
     </>
   )
 }
-
-
