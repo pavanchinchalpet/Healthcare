@@ -86,12 +86,12 @@ export default function PatientsPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!name.trim()) {
       alert('Name is required!')
       return
     }
-    
+
     const createPatientInput: any = { name: name.trim() }
     if (age && !isNaN(parseInt(age, 10))) createPatientInput.age = parseInt(age, 10)
     if (gender) createPatientInput.gender = gender.trim()
@@ -176,7 +176,7 @@ export default function PatientsPage() {
             <nav className="flex items-center gap-6">
               <a href="/dashboard" className="flex items-center gap-1 text-gray-600 hover:text-gray-900">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                 </svg>
                 Dashboard
               </a>
@@ -206,7 +206,7 @@ export default function PatientsPage() {
                 <div className="text-sm text-gray-800">{displayName || 'User'}</div>
                 <div className="text-xs text-gray-600">{role?.charAt(0).toUpperCase()}{role?.slice(1)}</div>
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
               >
@@ -353,7 +353,7 @@ export default function PatientsPage() {
                 <div className="flex items-start gap-4 flex-1">
                   <div className="w-14 h-14 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <svg className="w-7 h-7 text-teal-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                      <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                   <div>
@@ -365,21 +365,29 @@ export default function PatientsPage() {
                 {/* Middle - Contact Info */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 mx-8">
                   {patient.email && (
-                    <div>
+                    <div className="space-y-1">
                       <span className="text-sm text-gray-600">Email:</span>
-                      <p className="text-sm text-gray-900">{patient.email}</p>
+                      <p className="text-sm text-gray-900 break-all">
+                        {patient.email}
+                      </p>
                     </div>
                   )}
+
                   {patient.phone && (
-                    <div>
+                    <div className="space-y-1">
                       <span className="text-sm text-gray-600">Phone:</span>
-                      <p className="text-sm text-gray-900">{patient.phone}</p>
+                      <p className="text-sm text-gray-900">
+                        {patient.phone}
+                      </p>
                     </div>
                   )}
+
                   {patient.address && (
-                    <div>
+                    <div className="space-y-1">
                       <span className="text-sm text-gray-600">Address:</span>
-                      <p className="text-sm text-gray-900">{patient.address}</p>
+                      <p className="text-sm text-gray-900 break-words">
+                        {patient.address}
+                      </p>
                     </div>
                   )}
                 </div>
