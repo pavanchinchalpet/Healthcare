@@ -86,12 +86,12 @@ export default function PatientsPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!name.trim()) {
       alert('Name is required!')
       return
     }
-    
+
     const createPatientInput: any = { name: name.trim() }
     if (age && !isNaN(parseInt(age, 10))) createPatientInput.age = parseInt(age, 10)
     if (gender) createPatientInput.gender = gender.trim()
@@ -206,7 +206,7 @@ export default function PatientsPage() {
                 <div className="text-sm text-gray-800">{displayName || 'User'}</div>
                 <div className="text-xs text-gray-600">{role?.charAt(0).toUpperCase()}{role?.slice(1)}</div>
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
               >
@@ -367,19 +367,27 @@ export default function PatientsPage() {
                   {patient.email && (
                     <div className="space-y-1">
                       <span className="text-sm text-gray-600">Email:</span>
+
                       <p className="text-sm text-gray-900 break-all">{patient.email}</p>
+
                     </div>
                   )}
+
                   {patient.phone && (
                     <div className="space-y-1">
                       <span className="text-sm text-gray-600">Phone:</span>
+
                       <p className="text-sm text-gray-900 break-words">{patient.phone}</p>
+
                     </div>
                   )}
+
                   {patient.address && (
-                    <div>
+                    <div className="space-y-1">
                       <span className="text-sm text-gray-600">Address:</span>
-                      <p className="text-sm text-gray-900">{patient.address}</p>
+                      <p className="text-sm text-gray-900 break-words">
+                        {patient.address}
+                      </p>
                     </div>
                   )}
                 </div>

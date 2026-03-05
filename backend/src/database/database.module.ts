@@ -6,21 +6,28 @@ import { DatabaseService } from './database.service';
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        const databaseUrl = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_HRgKD2USepQ6@ep-dry-dew-adxkuks1-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&options=endpoint%3Dep-dry-dew-adxkuks1-pooler';
-        
+        const databaseUrl = process.env.DATABASE_URL;
+
+        if (!databaseUrl) {
+          throw new Error(
+            'DATABASE_URL is not defined. Please set it in your environment variables.',
+          );
+        }
+
         return {
           type: 'postgres',
           url: databaseUrl,
           entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-          synchronize: false,
-          logging: false,
-          ssl: {
-            rejectUnauthorized: false,
-          },
+          synchronize: false, // never true in prod
+          logging: process.env.NODE_ENV === 'development',
+          ssl:
+            process.env.NODE_ENV === 'production'
+              ? { rejectUnauthorized: false }
+              : false,
           extra: {
-            connectionLimit: 10,
-            acquireTimeoutMillis: 30000,
-            timeout: 20000,
+            max: 10, // connection pool size
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 20000,
           },
           retryAttempts: 3,
           retryDelay: 3000,
