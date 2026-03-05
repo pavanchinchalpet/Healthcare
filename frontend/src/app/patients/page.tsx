@@ -367,18 +367,18 @@ export default function PatientsPage() {
                   {patient.email && (
                     <div className="space-y-1">
                       <span className="text-sm text-gray-600">Email:</span>
-                      <p className="text-sm text-gray-900 break-all">
-                        {patient.email}
-                      </p>
+
+                      <p className="text-sm text-gray-900 break-all">{patient.email}</p>
+
                     </div>
                   )}
 
                   {patient.phone && (
                     <div className="space-y-1">
                       <span className="text-sm text-gray-600">Phone:</span>
-                      <p className="text-sm text-gray-900">
-                        {patient.phone}
-                      </p>
+
+                      <p className="text-sm text-gray-900 break-words">{patient.phone}</p>
+
                     </div>
                   )}
 
